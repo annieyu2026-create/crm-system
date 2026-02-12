@@ -64,66 +64,6 @@ function initializeData() {
                 createdAt: '2026-01-15',
                 value: 150000,
                 createdBy: 1 // 创建者用户ID
-            },
-            {
-                id: 2,
-                name: '李娜',
-                company: '华夏贸易集团',
-                email: 'lina@huaxia.com',
-                phone: '13800138002',
-                source: '推荐',
-                status: 'active',
-                salesOwners: '张总监',
-                interestedProducts: 'CRM系统定制, 数据分析平台',
-                notes: '通过老客户介绍',
-                createdAt: '2026-01-20',
-                value: 280000,
-                createdBy: 1
-            },
-            {
-                id: 3,
-                name: '王强',
-                company: '未来科技',
-                email: 'wangqiang@future.com',
-                phone: '13800138003',
-                source: '广告',
-                status: 'potential',
-                salesOwners: '李主管、赵专员',
-                interestedProducts: '移动应用开发',
-                notes: '正在评估中',
-                createdAt: '2026-01-25',
-                value: 0,
-                createdBy: 1
-            },
-            {
-                id: 4,
-                name: '赵雪',
-                company: '智能制造',
-                email: 'zhaoxue@smart.com',
-                phone: '13800138004',
-                source: '展会',
-                status: 'active',
-                salesOwners: '王经理、张总监、陈专员',
-                interestedProducts: '数据分析平台, 智能监控系统',
-                notes: '在展会上建立联系',
-                createdAt: '2026-01-10',
-                value: 320000,
-                createdBy: 1
-            },
-            {
-                id: 5,
-                name: '刘洋',
-                company: '数字营销',
-                email: 'liuyang@digital.com',
-                phone: '13800138005',
-                source: '网站',
-                status: 'inactive',
-                salesOwners: '陈专员',
-                interestedProducts: '营销自动化工具',
-                notes: '已有3个月未联系',
-                createdAt: '2025-10-15',
-                value: 50000,
-                createdBy: 1
             }
         ];
         saveData();
@@ -132,96 +72,14 @@ function initializeData() {
     if (savedInteractions) {
         interactions = JSON.parse(savedInteractions);
     } else {
-        interactions = [
-            {
-                id: 1,
-                customerId: 1,
-                customerName: '张明',
-                type: '电话',
-                content: '讨论了产品功能和定价方案，客户表示满意',
-                date: '2026-02-01'
-            },
-            {
-                id: 2,
-                customerId: 2,
-                customerName: '李娜',
-                type: '会议',
-                content: '签订了合作协议，确定了项目时间表',
-                date: '2026-01-30'
-            },
-            {
-                id: 3,
-                customerId: 1,
-                customerName: '张明',
-                type: '邮件',
-                content: '发送了产品演示视频和技术文档',
-                date: '2026-01-28'
-            },
-            {
-                id: 4,
-                customerId: 4,
-                customerName: '赵雪',
-                type: '拜访',
-                content: '上门拜访，参观了客户工厂，了解具体需求',
-                date: '2026-01-25'
-            }
-        ];
+        interactions = [];
         saveData();
     }
     
     if (savedOpportunities) {
         opportunities = JSON.parse(savedOpportunities);
     } else {
-        opportunities = [
-            {
-                id: 1,
-                customerName: '张明',
-                company: '科技创新有限公司',
-                email: 'zhangming@tech.com',
-                phone: '13800138001',
-                product: '企业管理软件',
-                originalPrice: 180000,
-                discount: 16.67,
-                amount: 150000,
-                isDelivered: true,
-                deliveryPeriod: 30,
-                paymentPeriod: 60,
-                notes: '项目已顺利交付，客户满意度高',
-                createdAt: '2026-01-15'
-            },
-            {
-                id: 2,
-                customerName: '李娜',
-                company: '华夏贸易集团',
-                email: 'lina@huaxia.com',
-                phone: '13800138002',
-                product: 'CRM系统定制',
-                originalPrice: 350000,
-                discount: 20,
-                amount: 280000,
-                isDelivered: false,
-                deliveryPeriod: 45,
-                paymentPeriod: 90,
-                notes: '正在开发阶段，预计下月交付',
-                createdAt: '2026-01-20'
-            },
-            {
-                id: 3,
-                customerName: '赵雪',
-                company: '智能制造',
-                email: 'zhaoxue@smart.com',
-                phone: '13800138004',
-                product: '智能监控系统',
-                originalPrice: 320000,
-                discount: 0,
-                amount: 320000,
-                isDelivered: false,
-                deliveryPeriod: 60,
-                paymentPeriod: 30,
-                notes: '客户要求加急处理',
-                createdAt: '2026-01-25'
-            }
-        ];
+        opportunities = [];
         saveData();
     }
 }
@@ -380,18 +238,13 @@ function calculateStats() {
     ).length;
     
     // 计算总成交额（只统计可见客户的商机）
-    // 注意：这里的逻辑简化了，实际上应该关联商机表
-    // 这里我们统计商机表中的金额
-    // 普通用户只能看到关联自己客户的商机（或者自己创建的商机，这里简化为关联客户）
     let totalRevenue = 0;
     
     if (currentUser.role === 'admin') {
         totalRevenue = opportunities.reduce((sum, op) => sum + (op.isDelivered ? parseFloat(op.amount) : 0), 0);
     } else {
         // 找出属于当前用户客户的商机
-        // 首先获取当前用户所有客户的名称或ID
         const myCustomerNames = visibleCustomers.map(c => c.name);
-        // 过滤商机
         const myOpportunities = opportunities.filter(op => myCustomerNames.includes(op.customerName));
         totalRevenue = myOpportunities.reduce((sum, op) => sum + (op.isDelivered ? parseFloat(op.amount) : 0), 0);
     }
@@ -425,11 +278,11 @@ function showPage(pageId) {
     });
     
     // 显示目标视图
-    document.getElementById(`${pageId}-view`).classList.remove('hidden');
+    document.getElementById(pageId + '-view').classList.remove('hidden');
     
     // 激活对应导航
-    const navLink = document.getElementById(`nav-${pageId}`);
-    navLink.classList.add('active');
+    const navLink = document.getElementById('nav-' + pageId);
+    if (navLink) navLink.classList.add('active');
     
     // 更新标题
     const titles = {
@@ -485,9 +338,7 @@ function renderCustomerList() {
         if (customer.salesOwners) {
             const owners = customer.salesOwners.split(/[,，、]/).map(s => s.trim()).filter(s => s);
             salesOwnersHtml = owners.map(owner => 
-                `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-1 mb-1">
-                    <i class="fas fa-user-tie mr-1 text-[10px]"></i>${owner}
-                </span>`
+                '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-1 mb-1"><i class="fas fa-user-tie mr-1 text-[10px]"></i>' + owner + '</span>'
             ).join('');
         }
         
@@ -496,9 +347,7 @@ function renderCustomerList() {
         if (customer.interestedProducts) {
             const products = customer.interestedProducts.split(/[,，、]/).map(p => p.trim()).filter(p => p);
             productsHtml = products.map(product => 
-                `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-1 mb-1">
-                    ${product}
-                </span>`
+                '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-1 mb-1">' + product + '</span>'
             ).join('');
         }
 
@@ -594,9 +443,7 @@ function renderOpportunityList() {
         
         // 计算折扣显示
         const discountDisplay = op.discount > 0 
-            ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 ml-2">
-                 ${op.discount}折
-               </span>` 
+            ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 ml-2">' + op.discount + '折</span>' 
             : '';
             
         tr.innerHTML = `
@@ -889,10 +736,16 @@ function closeModal(modalId) {
     
     // 如果是客户模态框，重置查重提示
     if (modalId === 'customer-modal') {
-        document.getElementById('email-check-msg').textContent = '将自动检查重复';
-        document.getElementById('email-check-msg').className = 'text-xs text-gray-500 mt-1';
-        document.getElementById('phone-check-msg').textContent = '将自动检查重复';
-        document.getElementById('phone-check-msg').className = 'text-xs text-gray-500 mt-1';
+        const emailMsg = document.getElementById('email-check-msg');
+        if (emailMsg) {
+            emailMsg.textContent = '将自动检查重复';
+            emailMsg.className = 'text-xs text-gray-500 mt-1';
+        }
+        const phoneMsg = document.getElementById('phone-check-msg');
+        if (phoneMsg) {
+            phoneMsg.textContent = '将自动检查重复';
+            phoneMsg.className = 'text-xs text-gray-500 mt-1';
+        }
     }
 }
 
@@ -1050,12 +903,6 @@ function setupPriceCalculation() {
         
         let finalAmount = originalPrice;
         if (discount > 0 && discount <= 100) {
-            // 折扣计算：例如10表示9折，即减去10%
-            // 或者10表示1折？通常CRM中折扣率指的是减免比例还是实付比例？
-            // 假设：用户输入10代表9折（即优惠10%），输入20代表8折
-            // 如果用户习惯输入90代表9折，逻辑需调整。
-            // 根据提示 "10表示9折"，说明输入的是优惠百分比
-            // 所以 10 => 价格 * (100-10)%
             finalAmount = originalPrice * (100 - discount) / 100;
         }
         
@@ -1252,15 +1099,21 @@ document.querySelectorAll('.sidebar-link').forEach(link => {
 
 // 监听搜索框
 ['customer', 'opportunity'].forEach(type => {
-    document.getElementById(`${type}-search`).addEventListener('input', () => {
-        if (type === 'customer') renderCustomerList();
-        else renderOpportunityList();
-    });
+    const searchInput = document.getElementById(type + '-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            if (type === 'customer') renderCustomerList();
+            else renderOpportunityList();
+        });
+    }
     
-    document.getElementById(`${type}-filter-status`).addEventListener('change', () => {
-        if (type === 'customer') renderCustomerList();
-        else renderOpportunityList();
-    });
+    const filterSelect = document.getElementById(type + '-filter-status');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', () => {
+            if (type === 'customer') renderCustomerList();
+            else renderOpportunityList();
+        });
+    }
 });
 
 // 初始化
