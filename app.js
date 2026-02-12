@@ -237,7 +237,7 @@ function validateEmail(email) {
 function login(email, password) {
     // 验证邮箱格式
     if (!validateEmail(email)) {
-        alert(`请使用公司企业邮箱（${COMPANY_EMAIL_DOMAIN}）登录！`);
+        alert('请使用公司企业邮箱（@fengfancloud.com）登录！');
         return false;
     }
 
@@ -257,7 +257,7 @@ function login(email, password) {
 function register(name, email, password) {
     // 验证邮箱格式
     if (!validateEmail(email)) {
-        alert(`请使用公司企业邮箱（${COMPANY_EMAIL_DOMAIN}）注册！\n例如：yourname${COMPANY_EMAIL_DOMAIN}`);
+        alert('请使用公司企业邮箱（@fengfancloud.com）注册！');
         return false;
     }
 
