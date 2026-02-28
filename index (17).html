@@ -1,0 +1,3319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户管理系统</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.6.0/echarts.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        * {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .status-badge {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .sidebar-link {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-link:hover::before,
+        .sidebar-link.active::before {
+            transform: scaleY(1);
+        }
+        
+        .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .search-input {
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .table-row {
+            transition: all 0.2s ease;
+        }
+        
+        .table-row:hover {
+            background: rgba(102, 126, 234, 0.05);
+            transform: scale(1.01);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 登录/注册页面 -->
+    <div id="auth-page" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass-effect rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-4">
+                    <i class="fas fa-users text-white text-3xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">客户管理系统</h1>
+                <p class="text-gray-500">CRM System</p>
+            </div>
+            
+            <!-- 登录表单 -->
+            <div id="login-form-container">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">登录账号</h2>
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">邮箱账号</label>
+                        <input type="email" id="login-email" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="请输入企业邮箱 @fengfancloud.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                        <input type="password" id="login-password" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="请输入密码">
+                    </div>
+                    <div class="text-right">
+                        <a href="#" id="show-reset-password" class="text-sm text-purple-600 hover:text-purple-700">忘记密码？</a>
+                    </div>
+                    <button type="submit" class="w-full btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        登录
+                    </button>
+                </form>
+                <p class="text-center text-gray-500 text-sm mt-4">
+                    还没有账号？<a href="#" id="show-register" class="text-purple-600 hover:text-purple-700 font-medium">立即注册</a>
+                </p>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div id="register-form-container" class="hidden">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">注册账号</h2>
+                <form id="register-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">姓名</label>
+                        <input type="text" id="register-name" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="请输入姓名">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">邮箱账号</label>
+                        <input type="email" id="register-email" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="请输入企业邮箱 @fengfancloud.com">
+                        <p class="text-xs text-gray-500 mt-1">仅支持公司企业邮箱注册</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                        <input type="password" id="register-password" required minlength="6"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="至少6位密码">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">确认密码</label>
+                        <input type="password" id="register-password-confirm" required minlength="6"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="再次输入密码">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">管理员注册码（选填）</label>
+                        <input type="text" id="register-admin-code" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="注册管理员请填写，普通用户留空">
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                        <p class="text-sm text-blue-700">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            必须使用公司企业邮箱（@fengfancloud.com）注册，新用户默认为普通角色
+                        </p>
+                    </div>
+                    <button type="submit" class="w-full btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        注册
+                    </button>
+                </form>
+                <p class="text-center text-gray-500 text-sm mt-4">
+                    已有账号？<a href="#" id="show-login" class="text-purple-600 hover:text-purple-700 font-medium">立即登录</a>
+                </p>
+            </div>
+
+            <!-- 重置密码表单 -->
+            <div id="reset-password-form-container" class="hidden">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">重置密码</h2>
+                <form id="reset-password-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">邮箱账号</label>
+                        <input type="email" id="reset-email" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="请输入注册邮箱">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">验证码</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="reset-code" required 
+                                   class="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                                   placeholder="请输入验证码">
+                            <button type="button" id="get-reset-code-btn" class="px-4 py-3 bg-purple-100 text-purple-600 rounded-xl font-medium hover:bg-purple-200 transition">
+                                获取验证码
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">新密码</label>
+                        <input type="password" id="reset-new-password" required minlength="6"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="至少6位新密码">
+                    </div>
+                    <button type="submit" class="w-full btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        重置密码
+                    </button>
+                </form>
+                <p class="text-center text-gray-500 text-sm mt-4">
+                    想起来了？<a href="#" id="back-to-login-from-reset" class="text-purple-600 hover:text-purple-700 font-medium">返回登录</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主系统页面 -->
+    <div id="main-system" class="flex h-screen overflow-hidden hidden">
+        <!-- 侧边栏 -->
+        <aside class="w-64 glass-effect shadow-xl flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">客户管理系统</h1>
+                        <p class="text-xs text-gray-500">CRM System</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" class="sidebar-link active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700" data-page="dashboard">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span class="font-medium">数据概览</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700" data-page="customers">
+                    <i class="fas fa-users w-5"></i>
+                    <span class="font-medium">客户列表</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700" data-page="opportunities">
+                    <i class="fas fa-briefcase w-5"></i>
+                    <span class="font-medium">商机管理</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700" data-page="interactions">
+                    <i class="fas fa-comments w-5"></i>
+                    <span class="font-medium">交互记录</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700" data-page="analytics">
+                    <i class="fas fa-chart-pie w-5"></i>
+                    <span class="font-medium">数据分析</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700" data-page="settings">
+                    <i class="fas fa-cog w-5"></i>
+                    <span class="font-medium">系统设置</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <div class="px-4 py-3 space-y-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-800 truncate" id="current-user-name">用户</p>
+                            <p class="text-xs text-gray-500 truncate" id="current-user-email">user@crm.com</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between px-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium" id="current-user-role-badge">
+                            <i class="fas fa-user-shield mr-1"></i>管理员
+                        </span>
+                        <button id="logout-btn" class="text-gray-500 hover:text-red-600 transition" title="退出登录">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- 数据概览页面 -->
+            <div id="dashboard-page" class="page-content p-8">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">数据概览</h2>
+                    <p class="text-gray-500">实时监控您的客户数据和业务指标</p>
+                </div>
+                
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-effect rounded-2xl p-6 card-hover shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                <i class="fas fa-users text-white text-xl"></i>
+                            </div>
+                            <span class="text-green-500 text-sm font-medium">
+                                <i class="fas fa-arrow-up"></i> 12%
+                            </span>
+                        </div>
+                        <p class="text-gray-500 text-sm mb-1">总客户数</p>
+                        <p class="text-3xl font-bold text-gray-800" id="total-customers">0</p>
+                    </div>
+                    
+                    <div class="glass-effect rounded-2xl p-6 card-hover shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                                <i class="fas fa-user-check text-white text-xl"></i>
+                            </div>
+                            <span class="text-green-500 text-sm font-medium">
+                                <i class="fas fa-arrow-up"></i> 8%
+                            </span>
+                        </div>
+                        <p class="text-gray-500 text-sm mb-1">活跃客户</p>
+                        <p class="text-3xl font-bold text-gray-800" id="active-customers">0</p>
+                    </div>
+                    
+                    <div class="glass-effect rounded-2xl p-6 card-hover shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                                <i class="fas fa-comments text-white text-xl"></i>
+                            </div>
+                            <span class="text-green-500 text-sm font-medium">
+                                <i class="fas fa-arrow-up"></i> 24%
+                            </span>
+                        </div>
+                        <p class="text-gray-500 text-sm mb-1">本月交互</p>
+                        <p class="text-3xl font-bold text-gray-800" id="monthly-interactions">0</p>
+                    </div>
+                    
+                    <div class="glass-effect rounded-2xl p-6 card-hover shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                                <i class="fas fa-dollar-sign text-white text-xl"></i>
+                            </div>
+                            <span class="text-green-500 text-sm font-medium">
+                                <i class="fas fa-arrow-up"></i> 18%
+                            </span>
+                        </div>
+                        <p class="text-gray-500 text-sm mb-1">总成交额</p>
+                        <p class="text-3xl font-bold text-gray-800" id="total-revenue">¥0</p>
+                    </div>
+                </div>
+                
+                <!-- 图表区域 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">客户增长趋势</h3>
+                        <div id="customer-growth-chart" style="height: 300px;"></div>
+                    </div>
+                    
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">客户来源分布</h3>
+                        <div id="customer-source-chart" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 客户列表页面 -->
+            <div id="customers-page" class="page-content p-8 hidden">
+                <div class="mb-8 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">客户列表</h2>
+                        <p class="text-gray-500">管理和查看所有客户信息</p>
+                    </div>
+                    <button id="add-customer-btn" class="btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        <i class="fas fa-plus mr-2"></i>添加客户
+                    </button>
+                </div>
+                
+                <!-- 搜索和筛选 -->
+                <div class="glass-effect rounded-2xl p-6 shadow-lg mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="search-customer" placeholder="搜索客户姓名、公司..." 
+                                   class="search-input w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                        </div>
+                        <select id="filter-status" class="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="">全部状态</option>
+                            <option value="active">活跃</option>
+                            <option value="potential">潜在</option>
+                            <option value="inactive">休眠</option>
+                        </select>
+                        <select id="filter-source" class="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="">全部来源</option>
+                            <option value="网站">网站</option>
+                            <option value="推荐">推荐</option>
+                            <option value="广告">广告</option>
+                            <option value="展会">展会</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 客户表格 -->
+                <div class="glass-effect rounded-2xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">公司</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">客户信息</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">联系方式</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">所在城市</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">感兴趣的产品</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">来源</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">状态</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table-body" class="divide-y divide-gray-200">
+                                <!-- 动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 商机管理页面 -->
+            <div id="opportunities-page" class="page-content p-8 hidden">
+                <div class="mb-8 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">商机管理</h2>
+                        <p class="text-gray-500">跟踪和管理销售商机</p>
+                    </div>
+                    <button id="add-opportunity-btn" class="btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        <i class="fas fa-plus mr-2"></i>添加商机
+                    </button>
+                </div>
+                
+                <!-- 商机统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-500 text-sm">总商机数</p>
+                            <i class="fas fa-briefcase text-blue-500"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800" id="total-opportunities">0</p>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-500 text-sm">进行中</p>
+                            <i class="fas fa-spinner text-orange-500"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800" id="ongoing-opportunities">0</p>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-500 text-sm">已交付</p>
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800" id="delivered-opportunities">0</p>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-500 text-sm">商机总额</p>
+                            <i class="fas fa-dollar-sign text-purple-500"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800" id="total-opportunity-value">¥0</p>
+                    </div>
+                </div>
+                
+                <!-- 搜索和筛选 -->
+                <div class="glass-effect rounded-2xl p-6 shadow-lg mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="search-opportunity" placeholder="搜索客户、公司、产品..." 
+                                   class="search-input w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                        </div>
+                        <select id="filter-delivery" class="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="">全部状态</option>
+                            <option value="true">已交付</option>
+                            <option value="false">未交付</option>
+                        </select>
+                        <select id="filter-product" class="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="">全部产品</option>
+                        </select>
+                        <button onclick="exportOpportunitiesToExcel()" class="px-4 py-3 bg-green-50 text-green-600 rounded-xl font-medium hover:bg-green-100 transition flex items-center justify-center">
+                            <i class="fas fa-file-excel mr-2"></i>导出报表
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 商机表格 -->
+                <div class="glass-effect rounded-2xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">客户信息</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">城市</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">产品</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">产品报价</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">折扣</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">合同金额</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">报备状态</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">交付状态</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">联合销售</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="opportunities-table-body" class="divide-y divide-gray-200">
+                                <!-- 动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 交互记录页面 -->
+            <div id="interactions-page" class="page-content p-8 hidden">
+                <div class="mb-8 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">交互记录</h2>
+                        <p class="text-gray-500">查看和管理客户交互历史</p>
+                    </div>
+                    <button id="add-interaction-btn" class="btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        <i class="fas fa-plus mr-2"></i>添加记录
+                    </button>
+                </div>
+                
+                <div id="interactions-container" class="space-y-4">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+            
+            <!-- 数据分析页面 -->
+            <div id="analytics-page" class="page-content p-8 hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">数据分析</h2>
+                    <p class="text-gray-500">深入了解您的客户数据和业务趋势</p>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">客户状态分布</h3>
+                        <div id="customer-status-chart" style="height: 350px;"></div>
+                    </div>
+                    
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">月度交互趋势</h3>
+                        <div id="interaction-trend-chart" style="height: 350px;"></div>
+                    </div>
+                </div>
+                
+                <!-- 新增：商机地域分布 -->
+                <div class="mt-6 glass-effect rounded-2xl p-6 shadow-lg">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">商机地域分布 (Top 10 城市)</h3>
+                    <div id="opportunity-city-chart" style="height: 400px;"></div>
+                </div>
+            </div>
+            
+            <!-- 系统设置页面 -->
+            <div id="settings-page" class="page-content p-8 hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">系统设置</h2>
+                    <p class="text-gray-500">管理系统数据备份与恢复</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 数据备份 -->
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg border-t-4 border-blue-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">数据备份</h3>
+                            <i class="fas fa-download text-blue-500 text-2xl"></i>
+                        </div>
+                        <p class="text-gray-600 mb-6 min-h-[3rem]">将当前所有系统数据（客户、商机、交互记录等）导出为本地文件。</p>
+                        <button onclick="exportData()" class="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-medium hover:bg-blue-100 transition flex items-center justify-center">
+                            <i class="fas fa-file-export mr-2"></i>导出备份数据
+                        </button>
+                    </div>
+                    
+                    <!-- 数据恢复 -->
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg border-t-4 border-green-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">数据恢复</h3>
+                            <i class="fas fa-upload text-green-500 text-2xl"></i>
+                        </div>
+                        <p class="text-gray-600 mb-6 min-h-[3rem]">从备份文件恢复数据。注意：这将覆盖当前系统中的所有数据。</p>
+                        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(this)">
+                        <button onclick="document.getElementById('import-file').click()" class="w-full py-3 bg-green-50 text-green-600 rounded-xl font-medium hover:bg-green-100 transition flex items-center justify-center">
+                            <i class="fas fa-file-import mr-2"></i>选择备份文件恢复
+                        </button>
+                    </div>
+                    
+                    <!-- 系统重置 -->
+                    <div class="glass-effect rounded-2xl p-6 shadow-lg border-t-4 border-red-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">系统重置</h3>
+                            <i class="fas fa-trash-alt text-red-500 text-2xl"></i>
+                        </div>
+                        <p class="text-gray-600 mb-6 min-h-[3rem]">清空所有数据，将系统恢复到初始状态。此操作不可撤销！</p>
+                        <button onclick="clearData()" class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>清空所有数据
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 远程服务器备份配置 -->
+                <div class="mt-8 glass-effect rounded-2xl p-6 shadow-lg border-t-4 border-purple-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">远程服务器备份 (高级)</h3>
+                        <i class="fas fa-cloud-upload-alt text-purple-500 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-600 mb-4">配置远程服务器地址，实现一键将数据备份到您的公司内网服务器或云服务器。</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">备份服务器地址 (URL)</label>
+                            <input type="text" id="backup-server-url" 
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                                   placeholder="例如：http://192.168.1.100:5000/upload">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">安全密钥 (Token)</label>
+                            <input type="password" id="backup-server-token" 
+                                   class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                                   placeholder="服务器验证密钥">
+                        </div>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button onclick="saveBackupConfig()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                            保存配置
+                        </button>
+                        <button onclick="uploadBackupToServer()" class="flex-1 px-6 py-3 bg-purple-100 text-purple-600 rounded-xl font-medium hover:bg-purple-200 transition flex items-center justify-center">
+                            <i class="fas fa-cloud-upload-alt mr-2"></i>立即上传备份到服务器
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-8 p-6 bg-yellow-50 rounded-2xl border border-yellow-100">
+                    <h4 class="text-lg font-bold text-yellow-800 mb-2"><i class="fas fa-shield-alt mr-2"></i>安全与合规说明</h4>
+                    <ul class="list-disc list-inside text-yellow-700 space-y-2">
+                        <li><strong>数据隐私：</strong> 本系统为纯前端应用，所有数据仅存储在您当前浏览器的 LocalStorage 中，不会上传到任何云端服务器，极大程度保障了您的商业机密安全。</li>
+                        <li><strong>数据备份：</strong> 由于数据仅存在于本地浏览器，建议您定期（如每周）使用"导出备份数据"功能下载 JSON 文件保存。</li>
+                        <li><strong>数据迁移：</strong> 如果更换电脑或浏览器，请先导出数据，然后在设备上使用"数据恢复"功能导入。</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 添加/编辑客户模态框 -->
+    <div id="customer-modal" class="modal">
+        <div class="modal-content glass-effect rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-800" id="modal-title">添加客户</h3>
+                <button class="close-modal text-gray-400 hover:text-gray-600 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="customer-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">姓名 *</label>
+                        <input type="text" id="customer-name" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">公司 *</label>
+                        <input type="text" id="customer-company" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">邮箱 *</label>
+                        <input type="email" id="customer-email" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">电话 *</label>
+                        <input type="tel" id="customer-phone" required
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">来源</label>
+                        <select id="customer-source" 
+                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="网站">网站</option>
+                            <option value="推荐">推荐</option>
+                            <option value="广告">广告</option>
+                            <option value="展会">展会</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">状态</label>
+                        <select id="customer-status" 
+                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="potential">潜在客户</option>
+                            <option value="active">活跃客户</option>
+                            <option value="inactive">休眠客户</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">所在城市</label>
+                    <select id="customer-city" 
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                        <option value="">请选择城市</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">感兴趣的产品</label>
+                    <select id="customer-interested-products" 
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                        <option value="">请选择产品</option>
+                        <option value="微软">微软</option>
+                        <option value="麦吉">麦吉</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+                    <textarea id="customer-notes" rows="3" 
+                              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" class="close-modal px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium">
+                        取消
+                    </button>
+                    <button type="submit" class="btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 添加交互记录模态框 -->
+    <div id="interaction-modal" class="modal">
+        <div class="modal-content glass-effect rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-800" id="interaction-modal-title">添加交互记录</h3>
+                <button class="close-modal text-gray-400 hover:text-gray-600 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="interaction-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择客户 *</label>
+                    <select id="interaction-customer" required 
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                        <option value="">请选择客户</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">交互类型 *</label>
+                    <select id="interaction-type" required 
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                        <option value="电话">电话沟通</option>
+                        <option value="邮件">邮件往来</option>
+                        <option value="会议">会议</option>
+                        <option value="拜访">上门拜访</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">交互内容 *</label>
+                    <textarea id="interaction-content" rows="4" required 
+                              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">下次联系时间 & 提醒</label>
+                    <input type="datetime-local" id="interaction-next-contact" 
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    <p class="text-xs text-gray-500 mt-1"><i class="fas fa-bell mr-1"></i>到达时间时，系统将在首页显示提醒。</p>
+                </div>
+                
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" class="close-modal px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium">
+                        取消
+                    </button>
+                    <button type="submit" class="btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑商机模态框 -->
+    <div id="opportunity-modal" class="modal">
+        <div class="modal-content glass-effect rounded-2xl p-8 max-w-3xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-800" id="opportunity-modal-title">添加商机</h3>
+                <button class="close-modal text-gray-400 hover:text-gray-600 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="opportunity-form" class="space-y-4">
+                <!-- 快速导入现有客户 -->
+                <div class="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <label class="block text-sm font-medium text-blue-800 mb-2">
+                        <i class="fas fa-user-check mr-1"></i>从现有客户导入信息（可选）
+                    </label>
+                    <select id="opportunity-customer-select" 
+                            class="w-full px-4 py-3 border border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="">-- 手动输入新客户 --</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">客户姓名 *</label>
+                        <input type="text" id="opportunity-customer-name" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">公司名称 *</label>
+                        <input type="text" id="opportunity-company" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">联系邮箱 *</label>
+                        <input type="email" id="opportunity-email" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">联系电话 *</label>
+                        <input type="tel" id="opportunity-phone" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">产品名称 * <span class="text-xs text-gray-500 font-normal">（按住 Ctrl/Cmd 可多选）</span></label>
+                        <select id="opportunity-product" required multiple size="4"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="">请选择产品</option>
+                            <option value="超级麦吉">超级麦吉</option>
+                            <option value="微软">微软</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">产品报价 (元) *</label>
+                        <input type="number" id="opportunity-original-price" required min="0" step="0.01"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">预计结单月份 <span class="text-red-500">*</span></label>
+                        <select id="opportunity-estimated-month" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="">请选择月份</option>
+                            <option value="1">1月</option>
+                            <option value="2">2月</option>
+                            <option value="3">3月</option>
+                            <option value="4">4月</option>
+                            <option value="5">5月</option>
+                            <option value="6">6月</option>
+                            <option value="7">7月</option>
+                            <option value="8">8月</option>
+                            <option value="9">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">所在城市 <span class="text-red-500">*</span></label>
+                        <select id="opportunity-city" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500">
+                            <option value="">请选择城市</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">联合销售</label>
+                    <select id="opportunity-joint-sales" multiple
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 h-24">
+                        <!-- 动态填充用户列表 -->
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">按住 Ctrl (Windows) 或 Command (Mac) 可多选</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">折扣 (%)</label>
+                        <input type="number" id="opportunity-discount" min="0" max="100" step="0.1"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="例如：10 表示9折"
+                               value="0">
+                        <p class="text-xs text-gray-500 mt-1">0表示无折扣，10表示9折，20表示8折</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">合同金额 (元) *</label>
+                        <input type="number" id="opportunity-amount" required min="0" step="0.01"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 bg-gray-50"
+                               placeholder="0.00" readonly>
+                        <p class="text-xs text-gray-500 mt-1">根据报价和折扣自动计算</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">交付周期 (天) *</label>
+                        <input type="number" id="opportunity-delivery-period" required min="1"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="例如：30">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">回款周期 (天) *</label>
+                        <input type="number" id="opportunity-payment-period" required min="1"
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                               placeholder="例如：60">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">是否已交付</label>
+                    <div class="flex items-center space-x-6">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="delivery-status" value="false" checked
+                                   class="w-4 h-4 text-purple-600 focus:ring-purple-500">
+                            <span class="ml-2 text-gray-700">未交付</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="delivery-status" value="true"
+                                   class="w-4 h-4 text-purple-600 focus:ring-purple-500">
+                            <span class="ml-2 text-gray-700">已交付</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+                    <textarea id="opportunity-notes" rows="3" 
+                              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                              placeholder="商机相关说明..."></textarea>
+                </div>
+                
+                <div class="flex justify-between space-x-4 pt-4">
+                    <button type="button" id="delete-opportunity-btn" class="hidden px-6 py-3 border border-red-200 text-red-600 rounded-xl hover:bg-red-50 font-medium transition-colors">
+                        <i class="fas fa-trash mr-2"></i>删除商机
+                    </button>
+                    <div class="flex space-x-4 ml-auto">
+                        <button type="button" class="close-modal px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium">
+                            取消
+                        </button>
+                        <button type="submit" class="btn-primary text-white px-6 py-3 rounded-xl font-medium shadow-lg">
+                            保存
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    </div>
+    
+    
+
+    <script>
+// 全局配置
+const ADMIN_SECRET_CODE = 'CRM2025';
+
+// 城市数据
+const CHINA_CITIES = {
+    "直辖市": ["北京", "上海", "天津", "重庆"],
+    "广东省": ["广州", "深圳", "珠海", "汕头", "佛山", "韶关", "湛江", "肇庆", "江门", "茂名", "惠州", "梅州", "汕尾", "河源", "阳江", "清远", "东莞", "中山", "潮州", "揭阳", "云浮"],
+    "浙江省": ["杭州", "宁波", "温州", "嘉兴", "湖州", "绍兴", "金华", "衢州", "舟山", "台州", "丽水"],
+    "江苏省": ["南京", "无锡", "徐州", "常州", "苏州", "南通", "连云港", "淮安", "盐城", "扬州", "镇江", "泰州", "宿迁"],
+    "山东省": ["济南", "青岛", "淄博", "枣庄", "东营", "烟台", "潍坊", "济宁", "泰安", "威海", "日照", "临沂", "德州", "聊城", "滨州", "菏泽"],
+    "福建省": ["福州", "厦门", "莆田", "三明", "泉州", "漳州", "南平", "龙岩", "宁德"],
+    "四川省": ["成都", "绵阳", "自贡", "攀枝花", "泸州", "德阳", "广元", "遂宁", "内江", "乐山", "资阳", "宜宾", "南充", "达州", "雅安", "阿坝", "甘孜", "凉山", "广安", "巴中", "眉山"],
+    "湖北省": ["武汉", "黄石", "十堰", "宜昌", "襄阳", "鄂州", "荆门", "孝感", "荆州", "黄冈", "咸宁", "随州", "恩施", "仙桃", "潜江", "天门", "神农架"],
+    "湖南省": ["长沙", "株洲", "湘潭", "衡阳", "邵阳", "岳阳", "常德", "张家界", "益阳", "郴州", "永州", "怀化", "娄底", "湘西"],
+    "河北省": ["石家庄", "唐山", "秦皇岛", "邯郸", "邢台", "保定", "张家口", "承德", "沧州", "廊坊", "衡水"],
+    "河南省": ["郑州", "开封", "洛阳", "平顶山", "安阳", "鹤壁", "新乡", "焦作", "濮阳", "许昌", "漯河", "三门峡", "南阳", "商丘", "信阳", "周口", "驻马店", "济源"],
+    "安徽省": ["合肥", "芜湖", "蚌埠", "淮南", "马鞍山", "淮北", "铜陵", "安庆", "黄山", "滁州", "阜阳", "宿州", "六安", "亳州", "池州", "宣城"],
+    "江西省": ["南昌", "景德镇", "萍乡", "九江", "新余", "鹰潭", "赣州", "吉安", "宜春", "抚州", "上饶"],
+    "广西壮族自治区": ["南宁", "柳州", "桂林", "梧州", "北海", "防城港", "钦州", "贵港", "玉林", "百色", "贺州", "河池", "来宾", "崇左"],
+    "陕西省": ["西安", "铜川", "宝鸡", "咸阳", "渭南", "延安", "汉中", "榆林", "安康", "商洛"],
+    "云南省": ["昆明", "曲靖", "玉溪", "保山", "昭通", "丽江", "普洱", "临沧", "楚雄", "红河", "文山", "西双版纳", "大理", "德宏", "怒江", "迪庆"],
+    "贵州省": ["贵阳", "六盘水", "遵义", "安顺", "毕节", "铜仁", "黔西南", "黔东南", "黔南"],
+    "山西省": ["太原", "大同", "阳泉", "长治", "晋城", "朔州", "晋中", "运城", "忻州", "临汾", "吕梁"],
+    "辽宁省": ["沈阳", "大连", "鞍山", "抚顺", "本溪", "丹东", "锦州", "营口", "阜新", "辽阳", "盘锦", "铁岭", "朝阳", "葫芦岛"],
+    "吉林省": ["长春", "吉林", "四平", "辽源", "通化", "白山", "松原", "白城", "延边"],
+    "黑龙江省": ["哈尔滨", "齐齐哈尔", "鸡西", "鹤岗", "双鸭山", "大庆", "伊春", "佳木斯", "七台河", "牡丹江", "黑河", "绥化", "大兴安岭"],
+    "内蒙古自治区": ["呼和浩特", "包头", "乌海", "赤峰", "通辽", "鄂尔多斯", "呼伦贝尔", "巴彦淖尔", "乌兰察布", "兴安", "锡林郭勒", "阿拉善"],
+    "新疆维吾尔自治区": ["乌鲁木齐", "克拉玛依", "吐鲁番", "哈密", "昌吉", "博尔塔拉", "巴音郭楞", "阿克苏", "克孜勒苏", "喀什", "和田", "伊犁", "塔城", "阿勒泰", "石河子", "阿拉尔", "图木舒克", "五家渠", "北屯", "铁门关", "双河", "可克达拉", "昆玉"],
+    "西藏自治区": ["拉萨", "日喀则", "昌都", "林芝", "山南", "那曲", "阿里"],
+    "甘肃省": ["兰州", "嘉峪关", "金昌", "白银", "天水", "武威", "张掖", "平凉", "酒泉", "庆阳", "定西", "陇南", "临夏", "甘南"],
+    "青海省": ["西宁", "海东", "海北", "黄南", "海南", "果洛", "玉树", "海西"],
+    "宁夏回族自治区": ["银川", "石嘴山", "吴忠", "固原", "中卫"],
+    "海南省": ["海口", "三亚", "三沙", "儋州", "五指山", "琼海", "文昌", "万宁", "东方", "定安", "屯昌", "澄迈", "临高", "白沙", "昌江", "乐东", "陵水", "保亭", "琼中"],
+    "台湾省": ["台北", "高雄", "基隆", "台中", "台南", "新竹", "嘉义"],
+    "香港特别行政区": ["香港"],
+    "澳门特别行政区": ["澳门"]
+};
+
+// 数据存储
+let currentUser = null; // 当前登录用户
+let users = []; // 用户列表
+let customers = [];
+let interactions = [];
+let opportunities = [];
+let currentEditId = null;
+let currentEditType = null; // 'customer' or 'opportunity'
+
+// 初始化示例数据
+function initializeData() {
+    console.log('Initializing data...');
+    // 初始化用户数据
+    try {
+        const savedUsers = localStorage.getItem('users');
+        if (savedUsers) {
+            users = JSON.parse(savedUsers);
+            if (!Array.isArray(users)) throw new Error('Invalid users data');
+            
+            // 自动修复：确保存在测试账号 Lily
+            if (!users.find(u => u.email === 'lily@fengfancloud.com')) {
+                users.push({
+                    id: Date.now(),
+                    name: 'Lily',
+                    email: 'lily@fengfancloud.com',
+                    password: '123456',
+                    role: 'user',
+                    createdAt: new Date().toISOString().split('T')[0]
+                });
+                localStorage.setItem('users', JSON.stringify(users));
+                console.log('Added default test user: Lily');
+            }
+        } else {
+            throw new Error('No users data');
+        }
+    } catch (e) {
+        console.error('Resetting users data:', e);
+        // 创建默认管理员账号和测试账号
+        users = [
+            {
+                id: 1,
+                name: '系统管理员',
+                email: 'admin@fengfancloud.com',
+                password: '123456',
+                role: 'admin', // admin 或 user
+                createdAt: '2026-01-01'
+            },
+            {
+                id: 2,
+                name: 'Lily',
+                email: 'lily@fengfancloud.com',
+                password: '123456',
+                role: 'user',
+                createdAt: '2026-01-01'
+            }
+        ];
+        localStorage.setItem('users', JSON.stringify(users));
+    }
+    
+    // 检查登录状态
+    try {
+        const savedCurrentUser = localStorage.getItem('currentUser');
+        if (savedCurrentUser) {
+            currentUser = JSON.parse(savedCurrentUser);
+            showMainSystem();
+        } else {
+            showAuthPage();
+            return;
+        }
+    } catch (e) {
+        console.error('Resetting login state:', e);
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        showAuthPage();
+        return;
+    }
+    
+    const savedCustomers = localStorage.getItem('customers');
+    const savedInteractions = localStorage.getItem('interactions');
+    const savedOpportunities = localStorage.getItem('opportunities');
+    
+    let customersLoaded = false;
+    if (savedCustomers) {
+        try {
+            customers = JSON.parse(savedCustomers);
+            if (Array.isArray(customers)) customersLoaded = true;
+        } catch (e) { console.error('Error parsing customers:', e); }
+    }
+    if (!customersLoaded) {
+        customers = [
+            {
+                id: 1,
+                name: '张明',
+                company: '科技创新有限公司',
+                email: 'zhangming@tech.com',
+                phone: '13800138001',
+                source: '网站',
+                status: 'active',
+                salesOwners: '王经理、李主管',
+                interestedProducts: '企业管理软件, CRM系统',
+                notes: '重要客户,对产品很感兴趣',
+                createdAt: '2026-01-15',
+                value: 150000,
+                createdBy: 1 // 创建者用户ID
+            },
+            {
+                id: 2,
+                name: '李娜',
+                company: '华夏贸易集团',
+                email: 'lina@huaxia.com',
+                phone: '13800138002',
+                source: '推荐',
+                status: 'active',
+                salesOwners: '张总监',
+                interestedProducts: 'CRM系统定制, 数据分析平台',
+                notes: '通过老客户介绍',
+                createdAt: '2026-01-20',
+                value: 280000,
+                createdBy: 1
+            },
+            {
+                id: 3,
+                name: '王强',
+                company: '未来科技',
+                email: 'wangqiang@future.com',
+                phone: '13800138003',
+                source: '广告',
+                status: 'potential',
+                salesOwners: '李主管、赵专员',
+                interestedProducts: '移动应用开发',
+                notes: '正在评估中',
+                createdAt: '2026-01-25',
+                value: 0,
+                createdBy: 1
+            },
+            {
+                id: 4,
+                name: '赵雪',
+                company: '智能制造',
+                email: 'zhaoxue@smart.com',
+                phone: '13800138004',
+                source: '展会',
+                status: 'active',
+                salesOwners: '王经理、张总监、陈专员',
+                interestedProducts: '数据分析平台, 智能监控系统',
+                notes: '在展会上建立联系',
+                createdAt: '2026-01-10',
+                value: 320000,
+                createdBy: 1
+            },
+            {
+                id: 5,
+                name: '刘洋',
+                company: '数字营销',
+                email: 'liuyang@digital.com',
+                phone: '13800138005',
+                source: '网站',
+                status: 'inactive',
+                salesOwners: '陈专员',
+                interestedProducts: '营销自动化工具',
+                notes: '已有3个月未联系',
+                createdAt: '2025-10-15',
+                value: 50000,
+                createdBy: 1
+            }
+        ];
+        saveData();
+    }
+    
+    let interactionsLoaded = false;
+    if (savedInteractions) {
+        try {
+            interactions = JSON.parse(savedInteractions);
+            if (Array.isArray(interactions)) interactionsLoaded = true;
+        } catch (e) { console.error('Error parsing interactions:', e); }
+    }
+    if (!interactionsLoaded) {
+        interactions = [
+            {
+                id: 1,
+                customerId: 1,
+                customerName: '张明',
+                type: '电话',
+                content: '讨论了产品功能和定价方案，客户表示满意',
+                date: '2026-02-01'
+            },
+            {
+                id: 2,
+                customerId: 2,
+                customerName: '李娜',
+                type: '会议',
+                content: '签订了合作协议，确定了项目时间表',
+                date: '2026-01-30'
+            },
+            {
+                id: 3,
+                customerId: 1,
+                customerName: '张明',
+                type: '邮件',
+                content: '发送了产品演示视频和技术文档',
+                date: '2026-01-28'
+            },
+            {
+                id: 4,
+                customerId: 4,
+                customerName: '赵雪',
+                type: '拜访',
+                content: '上门拜访，参观了客户工厂，了解具体需求',
+                date: '2026-01-25'
+            }
+        ];
+        saveData();
+    }
+    
+    let opportunitiesLoaded = false;
+    if (savedOpportunities) {
+        try {
+            opportunities = JSON.parse(savedOpportunities);
+            if (Array.isArray(opportunities)) opportunitiesLoaded = true;
+        } catch (e) { console.error('Error parsing opportunities:', e); }
+    }
+    if (!opportunitiesLoaded) {
+        opportunities = [
+            {
+                id: 1,
+                customerName: '张明',
+                company: '科技创新有限公司',
+                email: 'zhangming@tech.com',
+                phone: '13800138001',
+                product: '企业管理软件',
+                originalPrice: 180000,
+                discount: 16.67,
+                amount: 150000,
+                isDelivered: true,
+                deliveryPeriod: 30,
+                paymentPeriod: 60,
+                notes: '项目已顺利交付，客户满意度高',
+                createdAt: '2026-01-15'
+            },
+            {
+                id: 2,
+                customerName: '李娜',
+                company: '华夏贸易集团',
+                email: 'lina@huaxia.com',
+                phone: '13800138002',
+                product: 'CRM系统定制',
+                originalPrice: 350000,
+                discount: 20,
+                amount: 280000,
+                isDelivered: false,
+                deliveryPeriod: 45,
+                paymentPeriod: 90,
+                notes: '正在开发中，预计下月交付',
+                createdAt: '2026-01-20'
+            },
+            {
+                id: 3,
+                customerName: '赵雪',
+                company: '智能制造',
+                email: 'zhaoxue@smart.com',
+                phone: '13800138004',
+                product: '数据分析平台',
+                originalPrice: 400000,
+                discount: 20,
+                amount: 320000,
+                isDelivered: true,
+                deliveryPeriod: 60,
+                paymentPeriod: 30,
+                notes: '已完成交付并回款',
+                createdAt: '2026-01-10'
+            },
+            {
+                id: 4,
+                customerName: '王强',
+                company: '未来科技',
+                email: 'wangqiang@future.com',
+                phone: '13800138003',
+                product: '移动应用开发',
+                originalPrice: 200000,
+                discount: 10,
+                amount: 180000,
+                isDelivered: false,
+                deliveryPeriod: 90,
+                paymentPeriod: 60,
+                notes: '客户正在评估方案',
+                createdAt: '2026-01-25'
+            }
+        ];
+        saveData();
+    }
+}
+
+// 保存数据到localStorage
+function saveData() {
+    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.setItem('customers', JSON.stringify(customers));
+    localStorage.setItem('interactions', JSON.stringify(interactions));
+    localStorage.setItem('opportunities', JSON.stringify(opportunities));
+}
+
+// ==================== 用户认证功能 ====================
+
+// 企业邮箱域名
+const COMPANY_EMAIL_DOMAIN = '@fengfancloud.com';
+
+// 验证企业邮箱
+function isValidCompanyEmail(email) {
+    return email.toLowerCase().endsWith(COMPANY_EMAIL_DOMAIN.toLowerCase());
+}
+
+// 显示登录/注册页面
+function showAuthPage() {
+    document.getElementById('auth-page').classList.remove('hidden');
+    document.getElementById('main-system').classList.add('hidden');
+}
+
+// 显示主系统
+function showMainSystem() {
+    document.getElementById('auth-page').classList.add('hidden');
+    document.getElementById('main-system').classList.remove('hidden');
+    
+    // 确保导航事件已绑定（双重保险）
+    initNavigation();
+    
+    updateUserInfo();
+}
+
+// 更新用户信息显示
+function updateUserInfo() {
+    if (!currentUser) return;
+    
+    document.getElementById('current-user-name').textContent = currentUser.name;
+    document.getElementById('current-user-email').textContent = currentUser.email;
+    
+    const roleBadge = document.getElementById('current-user-role-badge');
+    if (currentUser.role === 'admin') {
+        roleBadge.innerHTML = '<i class="fas fa-user-shield mr-1"></i>管理员';
+        roleBadge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700';
+    } else {
+        roleBadge.innerHTML = '<i class="fas fa-user mr-1"></i>普通用户';
+        roleBadge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700';
+    }
+}
+
+// 初始化认证表单
+function initAuthForms() {
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const showRegisterBtn = document.getElementById('show-register');
+    const showLoginBtn = document.getElementById('show-login');
+    const logoutBtn = document.getElementById('logout-btn');
+    const showResetPasswordBtn = document.getElementById('show-reset-password');
+    const backToLoginFromResetBtn = document.getElementById('back-to-login-from-reset');
+    const getResetCodeBtn = document.getElementById('get-reset-code-btn');
+    const resetPasswordForm = document.getElementById('reset-password-form');
+    
+    let resetCode = null; // 存储验证码
+
+    // 切换到重置密码表单
+    if (showResetPasswordBtn) {
+        showResetPasswordBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-form-container').classList.add('hidden');
+            document.getElementById('reset-password-form-container').classList.remove('hidden');
+        });
+    }
+
+    // 从重置密码返回登录
+    if (backToLoginFromResetBtn) {
+        backToLoginFromResetBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('reset-password-form-container').classList.add('hidden');
+            document.getElementById('login-form-container').classList.remove('hidden');
+        });
+    }
+
+    // 获取验证码
+    if (getResetCodeBtn) {
+        getResetCodeBtn.addEventListener('click', () => {
+            const email = document.getElementById('reset-email').value;
+            if (!email) {
+                alert('请先输入邮箱账号！');
+                return;
+            }
+            if (!isValidCompanyEmail(email)) {
+                alert(`请使用公司企业邮箱（${COMPANY_EMAIL_DOMAIN}）！`);
+                return;
+            }
+            
+            // 检查邮箱是否存在
+            const user = users.find(u => u.email === email);
+            if (!user) {
+                alert('该邮箱未注册！');
+                return;
+            }
+
+            // 生成验证码
+            resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // 尝试通过 EmailJS 发送真实邮件
+            // 注意：这需要您去 emailjs.com 注册并获取自己的密钥
+            // 替换下方的 "YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", "YOUR_PUBLIC_KEY"
+            const EMAILJS_CONFIG = {
+                SERVICE_ID: "YOUR_SERVICE_ID", 
+                TEMPLATE_ID: "YOUR_TEMPLATE_ID",
+                PUBLIC_KEY: "YOUR_PUBLIC_KEY"
+            };
+
+            if (typeof emailjs !== 'undefined' && EMAILJS_CONFIG.PUBLIC_KEY !== "YOUR_PUBLIC_KEY") {
+                getResetCodeBtn.textContent = '发送中...';
+                getResetCodeBtn.disabled = true;
+                
+                emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+                emailjs.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.TEMPLATE_ID, {
+                    to_email: email,
+                    code: resetCode,
+                    to_name: user.name || 'User'
+                }).then(() => {
+                    alert(`验证码已发送至您的邮箱：${email}\n请查收（可能在垃圾邮件箱）`);
+                    startCountdown();
+                }).catch((error) => {
+                    console.error('EmailJS Error:', error);
+                    alert('邮件发送失败（请检查控制台配置或网络）。\n\n【开发模式】您的模拟验证码是：' + resetCode);
+                    startCountdown();
+                });
+            } else {
+                // 如果没有配置 EmailJS，回退到模拟模式
+                alert(`【模拟验证码】您的验证码是：${resetCode}\n\n提示：要发送真实邮件，请在代码中配置 EmailJS 密钥。`);
+                startCountdown();
+            }
+            
+            function startCountdown() {
+                let countdown = 60;
+                getResetCodeBtn.disabled = true;
+                getResetCodeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                const timer = setInterval(() => {
+                    getResetCodeBtn.textContent = `${countdown}秒后重试`;
+                    countdown--;
+                    if (countdown < 0) {
+                        clearInterval(timer);
+                        getResetCodeBtn.textContent = '获取验证码';
+                        getResetCodeBtn.disabled = false;
+                        getResetCodeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                }, 1000);
+            }
+        });
+    }
+
+    // 重置密码表单提交
+    if (resetPasswordForm) {
+        resetPasswordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value;
+            const code = document.getElementById('reset-code').value;
+            const newPassword = document.getElementById('reset-new-password').value;
+
+            if (code !== resetCode) {
+                alert('验证码错误！');
+                return;
+            }
+
+            const userIndex = users.findIndex(u => u.email === email);
+            if (userIndex !== -1) {
+                users[userIndex].password = newPassword;
+                saveData();
+                alert('密码重置成功！请使用新密码登录。');
+                backToLoginFromResetBtn.click();
+                resetPasswordForm.reset();
+                resetCode = null;
+            } else {
+                alert('用户不存在！');
+            }
+        });
+    }
+    
+    // 切换到注册表单
+    showRegisterBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('login-form-container').classList.add('hidden');
+        document.getElementById('register-form-container').classList.remove('hidden');
+    });
+    
+    // 切换到登录表单
+    showLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('register-form-container').classList.add('hidden');
+        document.getElementById('login-form-container').classList.remove('hidden');
+    });
+    
+    // 登录表单提交
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        // 验证企业邮箱
+        if (!isValidCompanyEmail(email)) {
+            alert(`请使用公司企业邮箱（${COMPANY_EMAIL_DOMAIN}）登录！`);
+            return;
+        }
+        
+        const user = users.find(u => u.email === email && u.password === password);
+        
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            showMainSystem();
+            initializeData(); // 重新加载数据
+            updateDashboard();
+            renderCustomers();
+        } else {
+            // 区分错误类型
+            const emailExists = users.some(u => u.email === email);
+            if (emailExists) {
+                alert('密码错误！\n默认密码可能是 123456 或 admin123。\n您可以尝试使用"忘记密码"功能重置。');
+            } else {
+                alert('该账号不存在！\n请先点击"立即注册"创建账号，或联系管理员。');
+            }
+        }
+    });
+    
+    // 注册表单提交
+    registerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-password-confirm').value;
+        const adminCode = document.getElementById('register-admin-code').value.trim();
+        
+        // 验证企业邮箱
+        if (!isValidCompanyEmail(email)) {
+            alert(`请使用公司企业邮箱（${COMPANY_EMAIL_DOMAIN}）注册！\n例如：zhangsan${COMPANY_EMAIL_DOMAIN}`);
+            return;
+        }
+        
+        // 验证密码匹配
+        if (password !== confirmPassword) {
+            alert('两次输入的密码不一致！');
+            return;
+        }
+        
+        // 检查邮箱是否已存在
+        if (users.find(u => u.email === email)) {
+            alert('该邮箱已被注册！');
+            return;
+        }
+        
+        // 验证管理员注册码
+        let role = 'user';
+        if (adminCode) {
+            if (adminCode === ADMIN_SECRET_CODE) { // 管理员注册码
+                role = 'admin';
+            } else {
+                alert('管理员注册码错误！\n如果您不是管理员，请清空该栏位注册为普通用户。');
+                return;
+            }
+        }
+
+        // 创建新用户
+        const newUser = {
+            id: Date.now(),
+            name: name,
+            email: email,
+            password: password,
+            role: role,
+            createdAt: new Date().toISOString().split('T')[0]
+        };
+        
+        users.push(newUser);
+        saveData();
+        
+        alert('注册成功！请登录');
+        document.getElementById('register-form-container').classList.add('hidden');
+        document.getElementById('login-form-container').classList.remove('hidden');
+        registerForm.reset();
+    });
+    
+    // 退出登录
+    logoutBtn.addEventListener('click', () => {
+        if (confirm('确定要退出登录吗？')) {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            showAuthPage();
+            loginForm.reset();
+        }
+    });
+}
+
+// 检查是否有权限查看客户
+function canViewCustomer(customer) {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true; // 管理员可以查看所有客户
+    return customer.createdBy === currentUser.id; // 普通用户只能查看自己创建的客户
+}
+
+// 检查客户是否重复（用于普通用户添加客户时）
+function checkDuplicateCustomer(email, phone, excludeId = null) {
+    return customers.some(c => {
+        if (excludeId && c.id === excludeId) return false;
+        return c.email === email || (phone && c.phone === phone);
+    });
+}
+
+// 页面导航
+function initNavigation() {
+    // 防止重复初始化
+    if (window.isNavigationInitialized) return;
+    window.isNavigationInitialized = true;
+    console.log('Initializing navigation...');
+
+    const links = document.querySelectorAll('.sidebar-link');
+    const pages = document.querySelectorAll('.page-content');
+    
+    links.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // 更新激活状态
+            links.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            
+            // 显示对应页面
+            const pageName = link.dataset.page;
+            pages.forEach(page => {
+                if (page.id === `${pageName}-page`) {
+                    page.classList.remove('hidden');
+                } else {
+                    page.classList.add('hidden');
+                }
+            });
+            
+            // 刷新页面内容
+            if (pageName === 'dashboard') {
+                updateDashboard();
+            } else if (pageName === 'customers') {
+                renderCustomers();
+            } else if (pageName === 'opportunities') {
+                renderOpportunities();
+                updateOpportunityStats();
+            } else if (pageName === 'interactions') {
+                renderInteractions();
+            } else if (pageName === 'analytics') {
+                renderAnalytics();
+            } else if (pageName === 'settings') {
+                renderSettings();
+            }
+        });
+    });
+}
+
+// 更新数据概览
+function updateDashboard() {
+    // 过滤出当前用户有权限查看的客户
+    let visibleCustomers = customers;
+    if (currentUser && currentUser.role !== 'admin') {
+        visibleCustomers = customers.filter(c => c.createdBy === currentUser.id);
+    }
+    
+    const totalCustomers = visibleCustomers.length;
+    const activeCustomers = visibleCustomers.filter(c => c.status === 'active').length;
+    
+    // 过滤交互记录（只统计可见客户的交互）
+    const visibleCustomerIds = visibleCustomers.map(c => c.id);
+    const visibleInteractions = interactions.filter(i => visibleCustomerIds.includes(i.customerId));
+    
+    const monthlyInteractions = visibleInteractions.filter(i => {
+        const date = new Date(i.date);
+        const now = new Date();
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).length;
+    
+    const totalRevenue = visibleCustomers.reduce((sum, c) => sum + (c.value || 0), 0);
+    
+    animateNumber('total-customers', totalCustomers);
+    animateNumber('active-customers', activeCustomers);
+    animateNumber('monthly-interactions', monthlyInteractions);
+    animateNumber('total-revenue', totalRevenue, true);
+    
+    renderCustomerGrowthChart();
+    renderCustomerSourceChart();
+}
+
+// 数字动画
+function animateNumber(elementId, target, isCurrency = false) {
+    const element = document.getElementById(elementId);
+    const duration = 1000;
+    const steps = 30;
+    const increment = target / steps;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            current = target;
+            clearInterval(timer);
+        }
+        
+        if (isCurrency) {
+            element.textContent = `¥${Math.floor(current).toLocaleString()}`;
+        } else {
+            element.textContent = Math.floor(current);
+        }
+    }, duration / steps);
+}
+
+// 客户增长趋势图
+function renderCustomerGrowthChart() {
+    const chart = echarts.init(document.getElementById('customer-growth-chart'));
+    
+    // 过滤出当前用户有权限查看的客户
+    let visibleCustomers = customers;
+    if (currentUser && currentUser.role !== 'admin') {
+        visibleCustomers = customers.filter(c => c.createdBy === currentUser.id);
+    }
+    
+    // 生成过去6个月的数据
+    const months = [];
+    const data = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(`${date.getMonth() + 1}月`);
+        
+        const count = visibleCustomers.filter(c => {
+            const createdDate = new Date(c.createdAt);
+            return createdDate <= date;
+        }).length;
+        data.push(count);
+    }
+    
+    const option = {
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: months,
+            axisLine: { lineStyle: { color: '#e5e7eb' } },
+            axisLabel: { color: '#6b7280' }
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { lineStyle: { color: '#e5e7eb' } },
+            axisLabel: { color: '#6b7280' },
+            splitLine: { lineStyle: { color: '#f3f4f6' } }
+        },
+        series: [{
+            data: data,
+            type: 'line',
+            smooth: true,
+            areaStyle: {
+                color: {
+                    type: 'linear',
+                    x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [
+                        { offset: 0, color: 'rgba(102, 126, 234, 0.4)' },
+                        { offset: 1, color: 'rgba(102, 126, 234, 0.05)' }
+                    ]
+                }
+            },
+            lineStyle: { color: '#667eea', width: 3 },
+            itemStyle: { color: '#667eea' }
+        }]
+    };
+    
+    chart.setOption(option);
+    
+    window.addEventListener('resize', () => {
+        chart.resize();
+    });
+}
+
+// 客户来源分布图
+function renderCustomerSourceChart() {
+    const chart = echarts.init(document.getElementById('customer-source-chart'));
+    
+    // 过滤出当前用户有权限查看的客户
+    let visibleCustomers = customers;
+    if (currentUser && currentUser.role !== 'admin') {
+        visibleCustomers = customers.filter(c => c.createdBy === currentUser.id);
+    }
+    
+    const sourceCount = {};
+    visibleCustomers.forEach(c => {
+        sourceCount[c.source] = (sourceCount[c.source] || 0) + 1;
+    });
+    
+    const data = Object.keys(sourceCount).map(key => ({
+        name: key,
+        value: sourceCount[key]
+    }));
+    
+    const option = {
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+            bottom: '5%',
+            left: 'center'
+        },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            avoidLabelOverlap: false,
+            itemStyle: {
+                borderRadius: 10,
+                borderColor: '#fff',
+                borderWidth: 2
+            },
+            label: {
+                show: false,
+                position: 'center'
+            },
+            emphasis: {
+                label: {
+                    show: true,
+                    fontSize: 20,
+                    fontWeight: 'bold'
+                }
+            },
+            labelLine: {
+                show: false
+            },
+            data: data,
+            color: ['#667eea', '#764ba2', '#f093fb', '#4facfe']
+        }]
+    };
+    
+    chart.setOption(option);
+    
+    window.addEventListener('resize', () => {
+        chart.resize();
+    });
+}
+
+// 填充城市下拉框
+function populateCitySelects() {
+    const selects = [
+        document.getElementById('customer-city'),
+        document.getElementById('opportunity-city')
+    ];
+    
+    // 生成城市选项 HTML
+    let cityOptions = '<option value="">请选择城市</option>';
+    for (const [province, cities] of Object.entries(CHINA_CITIES)) {
+        cityOptions += `<optgroup label="${province}">`;
+        cityOptions += cities.map(city => `<option value="${city}">${city}</option>`).join('');
+        cityOptions += `</optgroup>`;
+    }
+    
+    selects.forEach(select => {
+        if (select) {
+            select.innerHTML = cityOptions;
+        }
+    });
+}
+
+// 渲染客户列表
+function renderCustomers(filter = {}) {
+    const tbody = document.getElementById('customers-table-body');
+    let filteredCustomers = [...customers];
+    
+    // 权限过滤：普通用户只能看到自己创建的客户
+    if (currentUser && currentUser.role !== 'admin') {
+        filteredCustomers = filteredCustomers.filter(c => c.createdBy === currentUser.id);
+    }
+    
+    // 应用搜索过滤
+    if (filter.search) {
+        const search = filter.search.toLowerCase();
+        filteredCustomers = filteredCustomers.filter(c => 
+            c.name.toLowerCase().includes(search) || 
+            (c.company && c.company.toLowerCase().includes(search))
+        );
+    }
+    
+    // 应用状态过滤
+    if (filter.status) {
+        filteredCustomers = filteredCustomers.filter(c => c.status === filter.status);
+    }
+    
+    // 应用来源过滤
+    if (filter.source) {
+        filteredCustomers = filteredCustomers.filter(c => c.source === filter.source);
+    }
+    
+    tbody.innerHTML = filteredCustomers.map(customer => {
+        const statusColors = {
+            active: 'bg-green-100 text-green-700',
+            potential: 'bg-blue-100 text-blue-700',
+            inactive: 'bg-gray-100 text-gray-700'
+        };
+        
+        const statusText = {
+            active: '活跃',
+            potential: '潜在',
+            inactive: '休眠'
+        };
+        
+        return `
+            <tr class="table-row">
+                <td class="px-6 py-4 text-gray-700 font-medium">${customer.company || '-'}</td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-semibold">
+                            ${customer.name.charAt(0)}
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-800">${customer.name}</p>
+                            <p class="text-sm text-gray-500">${customer.createdAt}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <p class="text-gray-700">${customer.email}</p>
+                    <p class="text-sm text-gray-500">${customer.phone || '-'}</p>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700">
+                        ${customer.city || '未知'}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    ${customer.interestedProducts ? 
+                        `<div class="flex flex-wrap gap-1">
+                            ${customer.interestedProducts.split(',').map(p => 
+                                `<span class="px-2 py-1 rounded-lg text-xs bg-indigo-100 text-indigo-700">${p.trim()}</span>`
+                            ).join('')}
+                        </div>` 
+                        : '<span class="text-gray-400 text-sm">-</span>'}
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700">
+                        ${customer.source}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-sm ${statusColors[customer.status]}">
+                        ${statusText[customer.status]}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex space-x-2">
+                        <button onclick="editCustomer(${customer.id})" 
+                                class="text-blue-600 hover:text-blue-800 transition">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteCustomer(${customer.id})" 
+                                class="text-red-600 hover:text-red-800 transition">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 搜索和筛选
+function initFilters() {
+    const searchInput = document.getElementById('search-customer');
+    const statusFilter = document.getElementById('filter-status');
+    const sourceFilter = document.getElementById('filter-source');
+    
+    const applyFilters = () => {
+        renderCustomers({
+            search: searchInput.value,
+            status: statusFilter.value,
+            source: sourceFilter.value
+        });
+    };
+    
+    searchInput.addEventListener('input', applyFilters);
+    statusFilter.addEventListener('change', applyFilters);
+    sourceFilter.addEventListener('change', applyFilters);
+}
+
+// 模态框控制
+function initModals() {
+    const customerModal = document.getElementById('customer-modal');
+    const interactionModal = document.getElementById('interaction-modal');
+    const opportunityModal = document.getElementById('opportunity-modal');
+    const addCustomerBtn = document.getElementById('add-customer-btn');
+    const addInteractionBtn = document.getElementById('add-interaction-btn');
+    const addOpportunityBtn = document.getElementById('add-opportunity-btn');
+    const closeButtons = document.querySelectorAll('.close-modal');
+    
+    addCustomerBtn.addEventListener('click', () => {
+        currentEditId = null;
+        currentEditType = 'customer';
+        document.getElementById('modal-title').textContent = '添加客户';
+        document.getElementById('customer-form').reset();
+        customerModal.classList.add('active');
+    });
+    
+    addInteractionBtn.addEventListener('click', () => {
+        currentEditId = null;
+        currentEditType = 'interaction';
+        document.getElementById('interaction-modal-title').textContent = '添加交互记录';
+        updateInteractionCustomerSelect();
+        document.getElementById('interaction-form').reset();
+        interactionModal.classList.add('active');
+    });
+    
+    // 添加商机按钮点击事件
+    addOpportunityBtn.addEventListener('click', () => {
+        currentEditId = null;
+        currentEditType = 'opportunity';
+        document.getElementById('opportunity-modal-title').textContent = '添加商机';
+        document.getElementById('opportunity-form').reset();
+        
+        // 隐藏删除按钮
+        const deleteBtn = document.getElementById('delete-opportunity-btn');
+        if (deleteBtn) deleteBtn.classList.add('hidden');
+        
+        if (typeof updateOpportunityCustomerSelect === 'function') {
+            updateOpportunityCustomerSelect();
+        }
+        opportunityModal.classList.add('active');
+    });
+    
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            customerModal.classList.remove('active');
+            interactionModal.classList.remove('active');
+            opportunityModal.classList.remove('active');
+        });
+    });
+    
+    // 点击背景关闭
+    [customerModal, interactionModal, opportunityModal].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+}
+
+// 更新交互记录客户选择
+function updateInteractionCustomerSelect() {
+    const select = document.getElementById('interaction-customer');
+    
+    // 过滤客户：管理员看所有，普通用户看自己
+    let visibleCustomers = customers;
+    if (currentUser && currentUser.role !== 'admin') {
+        visibleCustomers = customers.filter(c => c.createdBy === currentUser.id);
+    }
+
+    select.innerHTML = '<option value="">请选择客户</option>' + 
+        visibleCustomers.map(c => `<option value="${c.id}">${c.name} - ${c.company || '无公司'}</option>`).join('');
+}
+
+// 新增：更新商机表单的客户选择下拉框
+function updateOpportunityCustomerSelect() {
+    const select = document.getElementById('opportunity-customer-select');
+    if (!select) return;
+    
+    // 过滤客户：管理员看所有，普通用户看自己
+    let visibleCustomers = customers;
+    if (currentUser && currentUser.role !== 'admin') {
+        visibleCustomers = customers.filter(c => c.createdBy === currentUser.id);
+    }
+    
+    select.innerHTML = '<option value="">-- 手动输入新客户 --</option>' + 
+        visibleCustomers.map(c => `<option value="${c.id}">${c.name} - ${c.company || '无公司'}</option>`).join('');
+
+    // 更新联合销售下拉框
+    const jointSalesSelect = document.getElementById('opportunity-joint-sales');
+    if (jointSalesSelect) {
+        // 列出所有用户（排除当前用户可选，也可以包含）
+        // 这里列出所有用户以便选择
+        jointSalesSelect.innerHTML = users.map(u => {
+            const roleName = u.role === 'admin' ? '管理员' : '销售';
+            return `<option value="${u.id}">${u.name} (${roleName})</option>`;
+        }).join('');
+    }
+}
+
+// 添加/编辑客户
+function initCustomerForm() {
+    const form = document.getElementById('customer-form');
+    
+    // 初始化城市下拉框
+    populateCitySelects();
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const customerData = {
+            name: document.getElementById('customer-name').value,
+            company: document.getElementById('customer-company').value,
+            email: document.getElementById('customer-email').value,
+            phone: document.getElementById('customer-phone').value,
+            source: document.getElementById('customer-source').value,
+            status: document.getElementById('customer-status').value,
+            city: document.getElementById('customer-city').value,
+            interestedProducts: document.getElementById('customer-interested-products').value,
+            notes: document.getElementById('customer-notes').value,
+            value: 0
+        };
+        
+        if (currentEditType === 'customer' && currentEditId) {
+            // 编辑现有客户
+            const index = customers.findIndex(c => c.id === currentEditId);
+            
+            // 普通用户编辑时检查查重（排除自己）
+            if (currentUser.role !== 'admin') {
+                if (checkDuplicateCustomer(customerData.email, customerData.phone, currentEditId)) {
+                    alert('该客户已存在（邮箱或电话重复）！');
+                    return;
+                }
+            }
+            
+            customers[index] = { ...customers[index], ...customerData };
+        } else {
+            // 添加新客户
+            
+            // 普通用户添加时检查查重
+            if (currentUser.role !== 'admin') {
+                if (checkDuplicateCustomer(customerData.email, customerData.phone)) {
+                    alert('该客户已存在（邮箱或电话重复），无法添加！');
+                    return;
+                }
+            }
+            
+            customerData.id = Date.now();
+            customerData.createdAt = new Date().toISOString().split('T')[0];
+            customerData.createdBy = currentUser.id; // 记录创建者
+            customers.push(customerData);
+        }
+        
+        saveData();
+        renderCustomers();
+        updateDashboard();
+        document.getElementById('customer-modal').classList.remove('active');
+        form.reset();
+        currentEditId = null;
+        currentEditType = null;
+    });
+}
+
+// 编辑客户
+function editCustomer(id) {
+    const customer = customers.find(c => c.id === id);
+    if (!customer) return;
+    
+    currentEditId = id;
+    currentEditType = 'customer';
+    document.getElementById('modal-title').textContent = '编辑客户';
+    document.getElementById('customer-name').value = customer.name;
+    document.getElementById('customer-company').value = customer.company || '';
+    document.getElementById('customer-email').value = customer.email;
+    document.getElementById('customer-phone').value = customer.phone || '';
+    document.getElementById('customer-source').value = customer.source;
+    document.getElementById('customer-status').value = customer.status;
+    document.getElementById('customer-city').value = customer.city || '';
+    document.getElementById('customer-interested-products').value = customer.interestedProducts || '';
+    document.getElementById('customer-notes').value = customer.notes || '';
+    
+    document.getElementById('customer-modal').classList.add('active');
+}
+
+// 删除客户
+function deleteCustomer(id) {
+    if (confirm('确定要删除这个客户吗？')) {
+        customers = customers.filter(c => c.id !== id);
+        interactions = interactions.filter(i => i.customerId !== id);
+        saveData();
+        renderCustomers();
+        updateDashboard();
+    }
+}
+
+// 添加交互记录
+function initInteractionForm() {
+    const form = document.getElementById('interaction-form');
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const customerId = parseInt(document.getElementById('interaction-customer').value);
+        const customer = customers.find(c => c.id === customerId);
+        
+        const interactionData = {
+            customerId: customerId,
+            customerName: customer.name,
+            type: document.getElementById('interaction-type').value,
+            content: document.getElementById('interaction-content').value,
+            nextContactTime: document.getElementById('interaction-next-contact').value,
+            date: new Date().toISOString().split('T')[0]
+        };
+        
+        if (currentEditType === 'interaction' && currentEditId) {
+            // 编辑现有交互
+            const index = interactions.findIndex(i => i.id === currentEditId);
+            interactions[index] = { ...interactions[index], ...interactionData };
+        } else {
+            // 添加新交互
+            interactionData.id = Date.now();
+            interactions.unshift(interactionData);
+        }
+        
+        saveData();
+        renderInteractions();
+        updateDashboard();
+        document.getElementById('interaction-modal').classList.remove('active');
+        form.reset();
+        currentEditId = null;
+        currentEditType = null;
+    });
+}
+
+// 渲染交互记录
+function renderInteractions() {
+    const container = document.getElementById('interactions-container');
+    
+    if (interactions.length === 0) {
+        container.innerHTML = `
+            <div class="glass-effect rounded-2xl p-12 text-center shadow-lg">
+                <i class="fas fa-comments text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500 text-lg">暂无交互记录</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = interactions.map(interaction => {
+        const typeIcons = {
+            '电话': 'fa-phone',
+            '邮件': 'fa-envelope',
+            '会议': 'fa-users',
+            '拜访': 'fa-handshake'
+        };
+        
+        const typeColors = {
+            '电话': 'from-blue-500 to-blue-600',
+            '邮件': 'from-green-500 to-green-600',
+            '会议': 'from-purple-500 to-purple-600',
+            '拜访': 'from-orange-500 to-orange-600'
+        };
+        
+        // 渲染下次联系时间
+        let nextContactHtml = '';
+        if (interaction.nextContactTime) {
+            const nextDate = new Date(interaction.nextContactTime);
+            const now = new Date();
+            const isCompleted = interaction.isCompleted;
+            const isOverdue = !isCompleted && nextDate < now;
+            
+            let style = 'text-orange-600 bg-orange-50';
+            let icon = 'fa-bell';
+            let text = '下次联系：' + nextDate.toLocaleString();
+            
+            if (isCompleted) {
+                style = 'text-gray-500 bg-gray-100 line-through';
+                icon = 'fa-check-circle';
+                text = '已完成：' + nextDate.toLocaleString();
+            } else if (isOverdue) {
+                style = 'text-red-600 bg-red-50 font-bold';
+                icon = 'fa-exclamation-circle';
+                text = '已过期：' + nextDate.toLocaleString();
+            }
+            
+            nextContactHtml = `
+                <div class="mt-3 flex items-center justify-between bg-gray-50 rounded-lg p-2">
+                    <div class="text-sm ${style} px-3 py-1 rounded-lg inline-flex items-center">
+                        <i class="fas ${icon} mr-2"></i>
+                        <span>${text}</span>
+                    </div>
+                    <button onclick="toggleInteractionStatus(${interaction.id})" 
+                            class="text-xs px-3 py-1 rounded-lg border ${isCompleted ? 'border-gray-300 text-gray-500' : 'border-green-500 text-green-600 hover:bg-green-50'} transition">
+                        ${isCompleted ? '标记未完成' : '标记完成'}
+                    </button>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="glass-effect rounded-2xl p-6 shadow-lg card-hover">
+                <div class="flex items-start space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${typeColors[interaction.type]} flex items-center justify-center flex-shrink-0">
+                        <i class="fas ${typeIcons[interaction.type]} text-white text-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <h4 class="font-semibold text-gray-800">${interaction.customerName}</h4>
+                                <p class="text-sm text-gray-500">${interaction.type} · ${interaction.date}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="editInteraction(${interaction.id})" 
+                                        class="text-blue-600 hover:text-blue-800 transition" title="编辑">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteInteraction(${interaction.id})" 
+                                        class="text-red-600 hover:text-red-800 transition" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-gray-700">${interaction.content}</p>
+                        ${nextContactHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 切换交互状态（完成/未完成）
+function toggleInteractionStatus(id) {
+    const interaction = interactions.find(i => i.id === id);
+    if (interaction) {
+        interaction.isCompleted = !interaction.isCompleted;
+        saveData();
+        renderInteractions();
+    }
+}
+
+// 编辑交互记录
+function editInteraction(id) {
+    const interaction = interactions.find(i => i.id === id);
+    if (!interaction) return;
+    
+    currentEditId = id;
+    currentEditType = 'interaction';
+    document.getElementById('interaction-modal-title').textContent = '编辑交互记录';
+    updateInteractionCustomerSelect();
+    
+    // 填充表单
+    document.getElementById('interaction-customer').value = interaction.customerId;
+    document.getElementById('interaction-type').value = interaction.type;
+    document.getElementById('interaction-content').value = interaction.content;
+    document.getElementById('interaction-next-contact').value = interaction.nextContactTime || '';
+    
+    document.getElementById('interaction-modal').classList.add('active');
+}
+
+// 检查提醒
+function checkReminders() {
+    if (!currentUser) return;
+    
+    const now = new Date();
+    interactions.forEach(i => {
+        if (!i.nextContactTime) return;
+        const nextDate = new Date(i.nextContactTime);
+        const diff = now - nextDate;
+        
+        // 如果过期时间在1分钟内，且没有标记为已提醒
+        if (diff > 0 && diff < 60000 && !i.notified) {
+            // 使用浏览器 Notification API 或 alert
+            alert(`【跟进提醒】\n客户：${i.customerName}\n时间：${nextDate.toLocaleString()}\n内容：${i.content}`);
+            i.notified = true; // 标记为已提醒
+            saveData();
+        }
+    });
+}
+
+// 删除交互记录
+function deleteInteraction(id) {
+    if (confirm('确定要删除这条交互记录吗？')) {
+        interactions = interactions.filter(i => i.id !== id);
+        saveData();
+        renderInteractions();
+        updateDashboard();
+    }
+}
+
+// 商机地域分布图
+function renderOpportunityCityChart() {
+    const chart = echarts.init(document.getElementById('opportunity-city-chart'));
+    
+    // 统计各城市商机数量
+    const cityStats = {};
+    opportunities.forEach(opp => {
+        if (opp.city) {
+            cityStats[opp.city] = (cityStats[opp.city] || 0) + 1;
+        }
+    });
+    
+    // 转换为数组并排序（取前10名）
+    const sortedData = Object.entries(cityStats)
+        .map(([city, count]) => ({ city, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+        
+    // ECharts 条形图数据顺序是从下到上，所以需要反转数组以让数量最多的在顶部
+    sortedData.reverse();
+    
+    const cities = sortedData.map(d => d.city);
+    const counts = sortedData.map(d => d.count);
+    
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'value',
+            boundaryGap: [0, 0.01]
+        },
+        yAxis: {
+            type: 'category',
+            data: cities,
+            axisLabel: {
+                interval: 0
+            }
+        },
+        series: [
+            {
+                name: '商机数量',
+                type: 'bar',
+                data: counts,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                        { offset: 0, color: '#667eea' },
+                        { offset: 1, color: '#764ba2' }
+                    ]),
+                    borderRadius: [0, 4, 4, 0]
+                },
+                label: {
+                    show: true,
+                    position: 'right'
+                }
+            }
+        ]
+    };
+    
+    chart.setOption(option);
+    
+    window.addEventListener('resize', () => {
+        chart.resize();
+    });
+}
+
+// 渲染数据分析
+function renderAnalytics() {
+    renderCustomerStatusChart();
+    renderInteractionTrendChart();
+    renderOpportunityCityChart();
+}
+
+// 渲染系统设置（目前主要是静态内容，预留接口）
+function renderSettings() {
+    console.log('Rendering settings page...');
+    // 加载保存的备份配置
+    const config = JSON.parse(localStorage.getItem('backupConfig') || '{}');
+    if (config.url) document.getElementById('backup-server-url').value = config.url;
+    if (config.token) document.getElementById('backup-server-token').value = config.token;
+}
+
+// 保存备份配置
+function saveBackupConfig() {
+    const url = document.getElementById('backup-server-url').value.trim();
+    const token = document.getElementById('backup-server-token').value.trim();
+    
+    if (!url) {
+        alert('请输入服务器地址！');
+        return;
+    }
+    
+    localStorage.setItem('backupConfig', JSON.stringify({ url, token }));
+    alert('配置已保存！');
+}
+
+// 上传备份到服务器
+async function uploadBackupToServer() {
+    const config = JSON.parse(localStorage.getItem('backupConfig') || '{}');
+    if (!config.url) {
+        alert('请先配置备份服务器地址！');
+        return;
+    }
+    
+    const data = {
+        users: users,
+        customers: customers,
+        interactions: interactions,
+        opportunities: opportunities,
+        exportTime: new Date().toISOString(),
+        version: '1.0'
+    };
+    
+    const btn = document.querySelector('button[onclick="uploadBackupToServer()"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>上传中...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch(config.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${config.token}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            alert(`备份成功！\n服务器响应：${result.message || 'OK'}`);
+        } else {
+            throw new Error(`服务器错误: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Backup error:', error);
+        alert(`备份失败：${error.message}\n请检查服务器地址是否正确，以及是否允许跨域(CORS)。`);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 导出数据
+function exportData() {
+    const data = {
+        users: users,
+        customers: customers,
+        interactions: interactions,
+        opportunities: opportunities,
+        exportTime: new Date().toISOString(),
+        version: '1.0'
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `crm_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('数据导出成功！请妥善保存下载的 JSON 文件。');
+}
+
+// 导入数据
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    if (!confirm('警告：导入数据将覆盖当前系统的所有数据！\n建议先导出当前数据作为备份。\n\n确定要继续吗？')) {
+        input.value = ''; // 清空选择
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // 简单的格式验证
+            if (!data.users || !data.customers) {
+                throw new Error('无效的数据格式');
+            }
+            
+            // 更新内存数据
+            users = data.users || [];
+            customers = data.customers || [];
+            interactions = data.interactions || [];
+            opportunities = data.opportunities || [];
+            
+            // 保存到本地存储
+            saveData();
+            
+            alert('数据恢复成功！系统将重新加载。');
+            location.reload();
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('导入失败：文件格式错误或已损坏。');
+        }
+    };
+    reader.readAsText(file);
+}
+
+// 清空数据
+function clearData() {
+    if (confirm('严重警告：此操作将永久删除所有系统数据！\n\n请输入 "DELETE" 确认操作：')) {
+        const input = prompt('请再次输入 "DELETE" 以确认清空：');
+        if (input === 'DELETE') {
+            localStorage.clear();
+            alert('系统已重置。页面将刷新。');
+            location.reload();
+        }
+    }
+}
+
+// 客户状态分布图
+function renderCustomerStatusChart() {
+    const chart = echarts.init(document.getElementById('customer-status-chart'));
+    
+    // 过滤出当前用户有权限查看的客户
+    let visibleCustomers = customers;
+    if (currentUser && currentUser.role !== 'admin') {
+        visibleCustomers = customers.filter(c => c.createdBy === currentUser.id);
+    }
+    
+    const statusCount = {
+        active: 0,
+        potential: 0,
+        inactive: 0
+    };
+    
+    visibleCustomers.forEach(c => {
+        statusCount[c.status]++;
+    });
+    
+    const option = {
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+            orient: 'vertical',
+            right: '10%',
+            top: 'center'
+        },
+        series: [{
+            type: 'pie',
+            radius: '65%',
+            center: ['40%', '50%'],
+            data: [
+                { value: statusCount.active, name: '活跃客户' },
+                { value: statusCount.potential, name: '潜在客户' },
+                { value: statusCount.inactive, name: '休眠客户' }
+            ],
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            },
+            color: ['#10b981', '#3b82f6', '#6b7280']
+        }]
+    };
+    
+    chart.setOption(option);
+    
+    window.addEventListener('resize', () => {
+        chart.resize();
+    });
+}
+
+// 交互趋势图
+function renderInteractionTrendChart() {
+    const chart = echarts.init(document.getElementById('interaction-trend-chart'));
+    
+    // 生成过去6个月的数据
+    const months = [];
+    const data = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(`${date.getMonth() + 1}月`);
+        
+        const count = interactions.filter(interaction => {
+            const interactionDate = new Date(interaction.date);
+            return interactionDate.getMonth() === date.getMonth() && 
+                   interactionDate.getFullYear() === date.getFullYear();
+        }).length;
+        data.push(count);
+    }
+    
+    const option = {
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: months,
+            axisLine: { lineStyle: { color: '#e5e7eb' } },
+            axisLabel: { color: '#6b7280' }
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { lineStyle: { color: '#e5e7eb' } },
+            axisLabel: { color: '#6b7280' },
+            splitLine: { lineStyle: { color: '#f3f4f6' } }
+        },
+        series: [{
+            data: data,
+            type: 'bar',
+            barWidth: '50%',
+            itemStyle: {
+                color: {
+                    type: 'linear',
+                    x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [
+                        { offset: 0, color: '#667eea' },
+                        { offset: 1, color: '#764ba2' }
+                    ]
+                },
+                borderRadius: [8, 8, 0, 0]
+            }
+        }]
+    };
+    
+    chart.setOption(option);
+    
+    window.addEventListener('resize', () => {
+        chart.resize();
+    });
+}
+
+// 页面加载完成后初始化
+window.onload = function() {
+    console.log('System starting...');
+    // 1. 初始化数据
+    initializeData();
+    
+    // 2. 初始化所有事件监听（无论登录状态，只绑定一次）
+    // 这一点至关重要：必须在页面加载时绑定点击事件，否则登录后导航会失效
+    initNavigation();
+    initModals();
+    initCustomerForm();
+    initInteractionForm();
+    initOpportunityForm();
+    initFilters();
+    initOpportunityFilters();
+    initAuthForms();
+    
+    // 3. 初始数据渲染（如果已登录）
+    if (currentUser) {
+        // 每次加载时检查过期状态
+        checkOpportunityExpiry();
+        updateDashboard();
+        renderCustomers();
+        checkReminders();
+        setInterval(checkReminders, 60000); // 每分钟检查一次提醒
+    }
+};
+
+// 导出函数供HTML调用
+window.editCustomer = editCustomer;
+window.deleteCustomer = deleteCustomer;
+window.deleteInteraction = deleteInteraction;
+window.editInteraction = editInteraction;
+window.toggleInteractionStatus = toggleInteractionStatus;
+window.editOpportunity = editOpportunity;
+window.deleteOpportunity = deleteOpportunity;
+window.exportOpportunitiesToExcel = exportOpportunitiesToExcel;
+
+// ==================== 商机管理功能 ====================
+
+// 检查商机报备过期状态
+function checkOpportunityExpiry() {
+    const now = new Date();
+    let hasChanges = false;
+
+    opportunities.forEach(opp => {
+        // 默认有效期30天
+        const filingDate = new Date(opp.createdAt);
+        const expiryDate = new Date(filingDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+        
+        // å¦æå½åæ¶é´è¶è¿æææï¼ä¸æªæ è®°ä¸ºè¿æ
+        if (now > expiryDate && !opp.isExpired) {
+            opp.isExpired = true;
+            hasChanges = true;
+        }
+        
+        // å¦æå¨æææåï¼ä¸è¢«éè¯¯æ è®°ä¸ºè¿æï¼å¯è½æ¯æå¨ä¿®æ¹äºæ¥æï¼ï¼æ¢å¤
+        if (now <= expiryDate && opp.isExpired) {
+            opp.isExpired = false;
+            hasChanges = true;
+        }
+    });
+
+    if (hasChanges) {
+        saveData();
+    }
+}
+
+// å¯¼åºåæºæ¥è¡¨ Excel (CSV)
+function exportOpportunitiesToExcel() {
+    // 定义表头
+    const headers = ['商机ID', '客户姓名', '公司名称', '联系电话', '产品', '原价', '折扣(%)', '合同金额', '报备日期', '截止日期', '状态', '销售负责人', '备注'];
+    
+    // 转换数据
+    const rows = opportunities.map(opp => {
+        const filingDate = new Date(opp.createdAt);
+        const expiryDate = new Date(filingDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const status = opp.isExpired ? '已过期' : (opp.isDelivered ? '已交付' : '报备中');
+        const owner = users.find(u => u.id === opp.createdBy)?.name || '未知';
+        
+        // 处理备注中的引号 (CSV格式要求：双引号需转义为两个双引号)
+        const notes = (opp.notes || '').replace(/"/g, '""');
+        
+        return [
+            opp.id,
+            opp.customerName,
+            opp.company,
+            opp.phone,
+            Array.isArray(opp.product) ? opp.product.join('; ') : opp.product,
+            opp.originalPrice || opp.amount,
+            opp.discount || 0,
+            opp.amount,
+            filingDate.toLocaleDateString(),
+            expiryDate.toLocaleDateString(),
+            status,
+            owner,
+            `"${notes}"`
+        ];
+    });
+
+    // 添加 BOM 防止中文乱码
+    const BOM = String.fromCharCode(0xFEFF);
+    const csvContent = BOM + headers.join(',') + '\n' + rows.map(row => row.join(',')).join('\n');
+    
+    // 创建下载
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `商机报备报表_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 更新商机统计
+function updateOpportunityStats() {
+    const totalOpps = opportunities.length;
+    const ongoingOpps = opportunities.filter(o => !o.isDelivered).length;
+    const deliveredOpps = opportunities.filter(o => o.isDelivered).length;
+    const totalValue = opportunities.reduce((sum, o) => sum + (o.amount || 0), 0);
+    
+    animateNumber('total-opportunities', totalOpps);
+    animateNumber('ongoing-opportunities', ongoingOpps);
+    animateNumber('delivered-opportunities', deliveredOpps);
+    animateNumber('total-opportunity-value', totalValue, true);
+}
+
+// 渲染商机列表
+function renderOpportunities(filter = {}) {
+    const tbody = document.getElementById('opportunities-table-body');
+    let filteredOpportunities = [...opportunities];
+    
+    // 应用搜索过滤
+    if (filter.search) {
+        const search = filter.search.toLowerCase();
+        filteredOpportunities = filteredOpportunities.filter(o => 
+            o.customerName.toLowerCase().includes(search) || 
+            (o.company && o.company.toLowerCase().includes(search)) ||
+            (Array.isArray(o.product) ? o.product.some(p => p.toLowerCase().includes(search)) : o.product && o.product.toLowerCase().includes(search))
+        );
+    }
+    
+    // 应用交付状态过滤
+    if (filter.delivery !== undefined && filter.delivery !== '') {
+        const isDelivered = filter.delivery === 'true';
+        filteredOpportunities = filteredOpportunities.filter(o => o.isDelivered === isDelivered);
+    }
+    
+    // 应用产品过滤
+    if (filter.product) {
+        filteredOpportunities = filteredOpportunities.filter(o => {
+            const products = Array.isArray(o.product) ? o.product : [o.product];
+            return products.includes(filter.product);
+        });
+    }
+    
+    tbody.innerHTML = filteredOpportunities.map(opp => {
+        const deliveryStatus = opp.isDelivered 
+            ? '<span class="px-3 py-1 rounded-full text-sm bg-green-100 text-green-700"><i class="fas fa-check-circle mr-1"></i>已交付</span>'
+            : '<span class="px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-700"><i class="fas fa-clock mr-1"></i>进行中</span>';
+        
+        // 计算报备状态
+        const filingDate = new Date(opp.createdAt);
+        const expiryDate = new Date(filingDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const now = new Date();
+        const diffTime = expiryDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let filingStatusHtml = '';
+        if (opp.isExpired) {
+            filingStatusHtml = '<span class="text-gray-400 text-sm"><i class="fas fa-history mr-1"></i>已过期</span>';
+        } else if (diffDays <= 5) {
+            filingStatusHtml = `<span class="text-red-600 text-sm font-bold"><i class="fas fa-exclamation-triangle mr-1"></i>剩 ${diffDays} 天过期</span>`;
+        } else {
+            filingStatusHtml = `<span class="text-blue-600 text-sm"><i class="fas fa-shield-alt mr-1"></i>保护期剩 ${diffDays} 天</span>`;
+        }
+
+        return `
+            <tr class="table-row">
+                <td class="px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-semibold">
+                            ${opp.customerName.charAt(0)}
+                        </div>
+                        <div>
+                            <p class="font-medium text-blue-600 cursor-pointer hover:underline" onclick="editOpportunity(${opp.id})">${opp.company || opp.customerName}</p>
+                            <p class="text-sm text-gray-500">${opp.company ? opp.customerName : ''}</p>
+                            <p class="text-xs text-gray-400">${opp.email}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-gray-700">
+                    ${opp.city || '-'}
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700">
+                        ${Array.isArray(opp.product) ? opp.product.join(', ') : opp.product}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <p class="text-gray-700">¥${(opp.originalPrice || opp.amount).toLocaleString()}</p>
+                </td>
+                <td class="px-6 py-4">
+                    ${opp.discount && opp.discount > 0 
+                        ? `<span class="px-2 py-1 rounded-lg text-sm bg-red-100 text-red-700 font-medium">${opp.discount}%</span>`
+                        : '<span class="text-gray-400 text-sm">无折扣</span>'}
+                </td>
+                <td class="px-6 py-4">
+                    <p class="font-semibold text-gray-800">¥${opp.amount.toLocaleString()}</p>
+                    ${opp.discount && opp.discount > 0 
+                        ? `<p class="text-xs text-green-600">已优惠 ¥${((opp.originalPrice || opp.amount) - opp.amount).toLocaleString()}</p>`
+                        : ''}
+                </td>
+                <td class="px-6 py-4">
+                    ${filingStatusHtml}
+                </td>
+                <td class="px-6 py-4">
+                    ${deliveryStatus}
+                </td>
+                <td class="px-6 py-4 text-gray-700 text-sm">
+                    ${(opp.jointSales || []).map(uid => users.find(u => u.id == uid)?.name).filter(Boolean).join(', ') || '-'}
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex space-x-2">
+                        <button onclick="editOpportunity(${opp.id})" 
+                                class="text-blue-600 hover:text-blue-800 transition"
+                                title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteOpportunity(${opp.id})" 
+                                class="text-red-600 hover:text-red-800 transition"
+                                title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // 更新产品筛选下拉框
+    updateProductFilter();
+}
+
+// 更新产品筛选选项
+function updateProductFilter() {
+    const productFilter = document.getElementById('filter-product');
+    const allProducts = opportunities.flatMap(o => Array.isArray(o.product) ? o.product : [o.product]);
+    const products = [...new Set(allProducts)].filter(Boolean);
+    
+    productFilter.innerHTML = '<option value="">全部产品</option>' + 
+        products.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+
+// 商机筛选初始化
+function initOpportunityFilters() {
+    const searchInput = document.getElementById('search-opportunity');
+    const deliveryFilter = document.getElementById('filter-delivery');
+    const productFilter = document.getElementById('filter-product');
+    
+    const applyFilters = () => {
+        renderOpportunities({
+            search: searchInput.value,
+            delivery: deliveryFilter.value,
+            product: productFilter.value
+        });
+    };
+    
+    searchInput.addEventListener('input', applyFilters);
+    deliveryFilter.addEventListener('change', applyFilters);
+    productFilter.addEventListener('change', applyFilters);
+}
+
+// 初始化商机表单
+function initOpportunityForm() {
+    const form = document.getElementById('opportunity-form');
+    const originalPriceInput = document.getElementById('opportunity-original-price');
+    const discountInput = document.getElementById('opportunity-discount');
+    const amountInput = document.getElementById('opportunity-amount');
+    const customerSelect = document.getElementById('opportunity-customer-select');
+
+    // 监听客户选择
+    if (customerSelect) {
+        customerSelect.addEventListener('change', (e) => {
+            const customerId = parseInt(e.target.value);
+            if (!customerId) return;
+            
+            const customer = customers.find(c => c.id === customerId);
+            if (customer) {
+                document.getElementById('opportunity-customer-name').value = customer.name;
+                document.getElementById('opportunity-company').value = customer.company || '';
+                document.getElementById('opportunity-email').value = customer.email || '';
+                document.getElementById('opportunity-phone').value = customer.phone || '';
+                document.getElementById('opportunity-notes').value = customer.notes || ''; // 同步备注信息
+                
+                // 同步城市信息
+                if (customer.city) {
+                    const citySelect = document.getElementById('opportunity-city');
+                    if (citySelect) {
+                        citySelect.value = customer.city;
+                    }
+                }
+            }
+        });
+    }
+    
+    // 自动计算合同金额
+    function calculateAmount() {
+        const originalPrice = parseFloat(originalPriceInput.value) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+        const amount = originalPrice * (1 - discount / 100);
+        amountInput.value = amount.toFixed(2);
+    }
+    
+    originalPriceInput.addEventListener('input', calculateAmount);
+    discountInput.addEventListener('input', calculateAmount);
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const originalPrice = parseFloat(document.getElementById('opportunity-original-price').value);
+        const discount = parseFloat(document.getElementById('opportunity-discount').value) || 0;
+        
+        // 获取联合销售人员
+        const jointSalesSelect = document.getElementById('opportunity-joint-sales');
+        const selectedJointSales = jointSalesSelect ? Array.from(jointSalesSelect.selectedOptions).map(option => option.value) : [];
+
+        // 获取选中的产品（多选）
+        const productSelect = document.getElementById('opportunity-product');
+        const selectedProducts = Array.from(productSelect.selectedOptions).map(option => option.value);
+        
+        if (selectedProducts.length === 0) {
+            alert('请至少选择一个产品');
+            return;
+        }
+
+        const city = document.getElementById('opportunity-city').value;
+        const estimatedMonth = document.getElementById('opportunity-estimated-month').value;
+
+        if (!city) {
+            alert('请选择所在城市');
+            return;
+        }
+
+        if (!estimatedMonth) {
+            alert('请选择预计结单月份');
+            return;
+        }
+
+        const opportunityData = {
+            customerName: document.getElementById('opportunity-customer-name').value,
+            company: document.getElementById('opportunity-company').value,
+            email: document.getElementById('opportunity-email').value,
+            phone: document.getElementById('opportunity-phone').value,
+            product: selectedProducts,
+            city: document.getElementById('opportunity-city').value,
+            estimatedMonth: document.getElementById('opportunity-estimated-month').value,
+            jointSales: selectedJointSales,
+            originalPrice: originalPrice,
+            discount: discount,
+            amount: parseFloat(document.getElementById('opportunity-amount').value),
+            deliveryPeriod: parseInt(document.getElementById('opportunity-delivery-period').value),
+            paymentPeriod: parseInt(document.getElementById('opportunity-payment-period').value),
+            isDelivered: document.querySelector('input[name="delivery-status"]:checked').value === 'true',
+            notes: document.getElementById('opportunity-notes').value
+        };
+        
+        // 防撞单检查 (仅新增时检查)
+        if (!currentEditId) {
+            // 1. 检查是否撞其他人的单（一客一销原则：同一客户只能由一人跟进）
+            const conflictOpp = opportunities.find(o => 
+                (o.customerName === opportunityData.customerName || (o.company && o.company === opportunityData.company)) && 
+                !o.isExpired && 
+                (currentUser && o.createdBy !== currentUser.id)
+            );
+
+            if (conflictOpp) {
+                const owner = users.find(u => u.id === conflictOpp.createdBy)?.name || '其他同事';
+                alert(`🚫 报备冲突提醒\n\n该客户【${conflictOpp.customerName} / ${conflictOpp.company}】已被销售【${owner}】报备，且处于保护期内。\n\n根据规定：一个客户在有效期内只能由一名销售跟进。\n\n即使您想报备不同的产品，也请先与【${owner}】沟通或等待保护期结束。`);
+                return;
+            }
+
+            // 2. 检查是否撞自己的单（同客户同产品不可重复报备）
+            // 规则：一个客户一种产品不能报备多次
+            const duplicateProductOpp = opportunities.find(o => {
+                const isSameCustomer = (o.customerName === opportunityData.customerName || (o.company && o.company === opportunityData.company));
+                if (!isSameCustomer) return false;
+                if (o.isExpired) return false;
+                // 只检查当前用户自己的商机（别人的已经在上面拦截了）
+                if (currentUser && o.createdBy !== currentUser.id) return false;
+
+                const existingProducts = Array.isArray(o.product) ? o.product : [o.product];
+                // 检查新选的产品是否已存在于该商机中（求交集）
+                return existingProducts.some(p => selectedProducts.includes(p));
+            });
+
+            if (duplicateProductOpp) {
+                const existingProducts = Array.isArray(duplicateProductOpp.product) ? duplicateProductOpp.product : [duplicateProductOpp.product];
+                const duplicateProducts = existingProducts.filter(p => selectedProducts.includes(p));
+                alert(`🚫 重复报备提醒\n\n您已为客户【${duplicateProductOpp.customerName}】报备过产品【${duplicateProducts.join(', ')}】。\n\n根据规定：一个客户一种产品不能报备多次。\n\n请勿重复提交。`);
+                return;
+            }
+        }
+        
+        if (currentEditType === 'opportunity' && currentEditId) {
+            // 编辑现有商机
+            const index = opportunities.findIndex(o => o.id === currentEditId);
+            opportunities[index] = { ...opportunities[index], ...opportunityData };
+        } else {
+            // 添加新商机
+            opportunityData.id = Date.now();
+            opportunityData.createdAt = new Date().toISOString().split('T')[0];
+            opportunityData.createdBy = currentUser ? currentUser.id : null; // 记录创建人
+            opportunityData.isExpired = false; // 初始状态
+            opportunities.push(opportunityData);
+        }
+        
+        saveData();
+        renderOpportunities();
+        updateOpportunityStats();
+        document.getElementById('opportunity-modal').classList.remove('active');
+        form.reset();
+        
+        // 隐藏删除按钮
+        const deleteBtn = document.getElementById('delete-opportunity-btn');
+        if (deleteBtn) deleteBtn.classList.add('hidden');
+        
+        currentEditId = null;
+        currentEditType = null;
+    });
+}
+
+// 编辑商机
+function editOpportunity(id) {
+    // 确保下拉框已填充
+    if (typeof updateOpportunityCustomerSelect === 'function') {
+        updateOpportunityCustomerSelect();
+    }
+
+    const opportunity = opportunities.find(o => o.id === id);
+    if (!opportunity) return;
+    
+    currentEditId = id;
+    currentEditType = 'opportunity';
+    document.getElementById('opportunity-modal-title').textContent = '编辑商机';
+    document.getElementById('opportunity-customer-name').value = opportunity.customerName;
+    document.getElementById('opportunity-company').value = opportunity.company;
+    document.getElementById('opportunity-email').value = opportunity.email;
+    document.getElementById('opportunity-phone').value = opportunity.phone;
+    
+    // 设置产品多选回显
+    const productSelect = document.getElementById('opportunity-product');
+    // 先重置所有选中状态
+    Array.from(productSelect.options).forEach(opt => opt.selected = false);
+    
+    const oppProducts = Array.isArray(opportunity.product) ? opportunity.product : [opportunity.product];
+    oppProducts.forEach(p => {
+        // 查找匹配的 option（处理可能的空格等问题，虽然 value 应该是精确的）
+        const opt = Array.from(productSelect.options).find(o => o.value === p);
+        if (opt) opt.selected = true;
+    });
+
+    document.getElementById('opportunity-city').value = opportunity.city || '';
+    document.getElementById('opportunity-estimated-month').value = opportunity.estimatedMonth || '';
+
+    // 设置联合销售
+    const jointSalesSelect = document.getElementById('opportunity-joint-sales');
+    if (jointSalesSelect) {
+        // 先重置
+        Array.from(jointSalesSelect.options).forEach(option => option.selected = false);
+        
+        if (opportunity.jointSales && Array.isArray(opportunity.jointSales)) {
+            Array.from(jointSalesSelect.options).forEach(option => {
+                if (opportunity.jointSales.includes(option.value)) {
+                    option.selected = true;
+                }
+            });
+        }
+    }
+
+    document.getElementById('opportunity-original-price').value = opportunity.originalPrice || opportunity.amount;
+    document.getElementById('opportunity-discount').value = opportunity.discount || 0;
+    document.getElementById('opportunity-amount').value = opportunity.amount;
+    document.getElementById('opportunity-delivery-period').value = opportunity.deliveryPeriod;
+    document.getElementById('opportunity-payment-period').value = opportunity.paymentPeriod;
+    document.getElementById('opportunity-notes').value = opportunity.notes || '';
+    
+    // 设置交付状态
+    const deliveryStatus = opportunity.isDelivered ? 'true' : 'false';
+    document.querySelector(`input[name="delivery-status"][value="${deliveryStatus}"]`).checked = true;
+    
+    // 显示删除按钮
+    const deleteBtn = document.getElementById('delete-opportunity-btn');
+    if (deleteBtn) {
+        deleteBtn.classList.remove('hidden');
+        deleteBtn.onclick = () => {
+            if (confirm('确定要删除这个商机吗？')) {
+                deleteOpportunity(id);
+                document.getElementById('opportunity-modal').classList.remove('active');
+            }
+        };
+    }
+    
+    document.getElementById('opportunity-modal').classList.add('active');
+}
+
+// 删除商机
+function deleteOpportunity(id) {
+    if (confirm('确定要删除这个商机吗？')) {
+        opportunities = opportunities.filter(o => o.id !== id);
+        saveData();
+        renderOpportunities();
+        updateOpportunityStats();
+    }
+}
+
+    </script>
+</body>
+</html>
+
+<!-- Force Update -->
